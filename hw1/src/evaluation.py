@@ -65,7 +65,7 @@ class Evaluator:
         # 打印混淆矩阵
         print("\n混淆矩阵:")
         print("-" * 80)
-        print(f"{'真实\\预测':<20}", end="")
+        print(f"{'真实 / 预测':<20}", end="")
         for name in self.class_names:
             print(f"{name[:8]:>10}", end="")
         print()

@@ -1,6 +1,7 @@
 .claude/
 EuroSAT_RGB/
 logs/
+output
 
 .DS_Store
 *.pyc

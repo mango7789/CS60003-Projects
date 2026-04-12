@@ -3,8 +3,8 @@
 # 使用方法: ./scripts/train_quick.sh
 
 # 设置路径
-SRC_DIR="$(cd "$(dirname "$0")/../src" && pwd)"
-LOG_DIR="$(cd "$(dirname "$0")/../logs" && pwd)"
+SRC_DIR="src"
+LOG_DIR="logs"
 mkdir -p "$LOG_DIR"
 
 # 时间戳
