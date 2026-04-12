@@ -261,11 +261,12 @@ def train_model(config, X_train, y_train, X_val, y_val, save_dir, logger=None):
         weight_decay=config['weight_decay']
     )
 
-    # Create optimizer
+    # Create optimizer with gradient clipping
     optimizer = SGDOptimizer(
         learning_rate=config['learning_rate'],
         momentum=config.get('momentum', 0.9),
-        weight_decay=config['weight_decay']
+        weight_decay=config['weight_decay'],
+        grad_clip=config.get('grad_clip', 5.0)  # Default gradient clipping
     )
 
     # Create learning rate scheduler

@@ -52,16 +52,18 @@ class ThreeLayerMLP:
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        # He initialization (for ReLU) - standard scale
+        # Conservative initialization for large input dimension
+        # Use smaller scale for first layer due to large input size (12288)
         if self.activation_name == 'relu':
-            scale1 = np.sqrt(2.0 / self.input_size)
+            # He initialization with conservative scaling
+            scale1 = np.sqrt(2.0 / self.input_size) * 0.5  # Extra 0.5 for stability
             scale2 = np.sqrt(2.0 / self.hidden_size)
-            scale3 = np.sqrt(2.0 / self.hidden_size)
-        # Xavier initialization (for Sigmoid/Tanh)
+            scale3 = np.sqrt(2.0 / self.hidden_size) * 0.5  # Extra 0.5 for stability
         else:
-            scale1 = np.sqrt(1.0 / self.input_size)
+            # Xavier initialization with conservative scaling
+            scale1 = np.sqrt(1.0 / self.input_size) * 0.5
             scale2 = np.sqrt(1.0 / self.hidden_size)
-            scale3 = np.sqrt(1.0 / self.hidden_size)
+            scale3 = np.sqrt(1.0 / self.hidden_size) * 0.5
 
         self.params = {
             'W1': np.random.randn(self.input_size, self.hidden_size) * scale1,

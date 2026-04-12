@@ -151,7 +151,8 @@ def main(args):
         'batch_size': args.batch_size,
         'lr_decay_type': args.lr_decay_type,
         'lr_decay_rate': args.lr_decay_rate,
-        'lr_decay_steps': args.lr_decay_steps
+        'lr_decay_steps': args.lr_decay_steps,
+        'grad_clip': args.grad_clip
     }
 
     model, history = train_model(train_config, X_train, y_train, X_val, y_val, checkpoint_dir, logger)
@@ -238,12 +239,14 @@ if __name__ == "__main__":
                         help='Number of epochs')
     parser.add_argument('--batch_size', type=int, default=64,
                         help='Batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.01,
-                        help='Learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.001,
+                        help='Learning rate (default 0.001 for stability)')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum coefficient')
     parser.add_argument('--weight_decay', type=float, default=0.0001,
                         help='L2 regularization coefficient')
+    parser.add_argument('--grad_clip', type=float, default=5.0,
+                        help='Gradient clipping max norm (default 5.0)')
 
     # Learning rate decay
     parser.add_argument('--lr_decay_type', type=str, default='step',
