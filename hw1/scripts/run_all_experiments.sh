@@ -1,16 +1,16 @@
 #!/bin/bash
 # 运行所有对比实验
-# 使用方法: ./scripts/run_all_experiments.sh
-
-SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "========================================"
 echo "运行所有对比实验"
-echo "========================================"
 echo "开始时间: $(date)"
-echo ""
+echo "========================================"
+
+# 获取脚本目录
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # 实验1: 激活函数对比
+echo ""
 echo ">>> 实验 1/5: 激活函数对比"
 "$SCRIPTS_DIR/exp_activation.sh"
 

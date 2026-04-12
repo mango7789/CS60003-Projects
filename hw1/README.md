@@ -39,7 +39,7 @@ hw1/
 ## 环境依赖
 
 ```bash
-pip install numpy pillow scikit-learn matplotlib seaborn
+pip install numpy pillow scikit-learn matplotlib seaborn tqdm
 ```
 
 ---
