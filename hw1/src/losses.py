@@ -1,33 +1,33 @@
 """
-损失函数模块
-包含交叉熵损失函数
+Loss Functions Module
+Contains cross-entropy loss function
 """
 
 import numpy as np
 
 
 class CrossEntropyLoss:
-    """交叉熵损失函数"""
+    """Cross-entropy loss function"""
 
     def __init__(self):
         self.cache = None
 
     def forward(self, predictions, targets, epsilon=1e-15):
         """
-        计算交叉熵损失
+        Compute cross-entropy loss
 
         Args:
-            predictions: 模型预测概率 (softmax输出), shape (N, C)
-            targets: 真实标签 (one-hot编码), shape (N, C)
-            epsilon: 防止 log(0) 的极小值
+            predictions: Model predicted probabilities (softmax output), shape (N, C)
+            targets: True labels (one-hot encoded), shape (N, C)
+            epsilon: Small value to prevent log(0)
 
         Returns:
-            loss: 标量损失值
+            loss: Scalar loss value
         """
-        # 裁剪预测值防止数值问题
+        # Clip predictions to prevent numerical issues
         predictions = np.clip(predictions, epsilon, 1 - epsilon)
 
-        # 计算交叉熵损失
+        # Compute cross-entropy loss
         loss = -np.sum(targets * np.log(predictions)) / predictions.shape[0]
 
         self.cache = (predictions, targets)
@@ -35,10 +35,10 @@ class CrossEntropyLoss:
 
     def backward(self):
         """
-        计算损失对预测值的梯度
+        Compute gradient of loss w.r.t. predictions
 
         Returns:
-            grad: 损失对 logits 的梯度, shape (N, C)
+            grad: Gradient of loss w.r.t. logits, shape (N, C)
         """
         predictions, targets = self.cache
         grad = (predictions - targets) / predictions.shape[0]
@@ -46,24 +46,24 @@ class CrossEntropyLoss:
 
 
 class L2Regularization:
-    """L2 正则化"""
+    """L2 regularization"""
 
     def __init__(self, weight_decay=0.0):
         """
         Args:
-            weight_decay: L2 正则化系数
+            weight_decay: L2 regularization coefficient
         """
         self.weight_decay = weight_decay
 
     def forward(self, weights_list):
         """
-        计算所有权重矩阵的 L2 正则化损失
+        Compute L2 regularization loss for all weight matrices
 
         Args:
-            weights_list: 权重矩阵列表
+            weights_list: List of weight matrices
 
         Returns:
-            reg_loss: 正则化损失
+            reg_loss: Regularization loss
         """
         reg_loss = 0.0
         for W in weights_list:
@@ -72,19 +72,19 @@ class L2Regularization:
 
     def backward(self, W):
         """
-        计算权重的正则化梯度
+        Compute regularization gradient for weights
 
         Args:
-            W: 权重矩阵
+            W: Weight matrix
 
         Returns:
-            grad: 正则化梯度
+            grad: Regularization gradient
         """
         return self.weight_decay * W
 
 
 if __name__ == "__main__":
-    # 测试交叉熵损失
+    # Test cross-entropy loss
     predictions = np.array([[0.7, 0.2, 0.1], [0.1, 0.8, 0.1]], dtype=np.float32)
     targets = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
 
@@ -92,10 +92,10 @@ if __name__ == "__main__":
     loss = ce_loss.forward(predictions, targets)
     grad = ce_loss.backward()
 
-    print("预测值:")
+    print("Predictions:")
     print(predictions)
-    print("\n真实标签:")
+    print("\nTrue labels:")
     print(targets)
-    print(f"\n交叉熵损失: {loss}")
-    print("\n梯度:")
+    print(f"\nCross-entropy loss: {loss}")
+    print("\nGradient:")
     print(grad)

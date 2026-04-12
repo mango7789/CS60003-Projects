@@ -1,6 +1,6 @@
 """
-测试脚本
-加载训练好的模型进行测试评估
+Test Script
+Load trained model for test evaluation
 """
 
 import os
@@ -16,13 +16,13 @@ from visualization import visualize_first_layer_weights, visualize_weight_patter
 
 
 def main(args):
-    """主函数"""
+    """Main function"""
     print("=" * 60)
-    print("模型测试评估")
+    print("Model Test Evaluation")
     print("=" * 60)
 
-    # 加载数据
-    print("\n加载数据...")
+    # Load data
+    print("\nLoading data...")
     data_loader = DataLoader(args.data_dir, img_size=64)
 
     processed_data_dir = os.path.join(args.exp_dir, 'processed_data')
@@ -32,50 +32,50 @@ def main(args):
         images, labels = data_loader.load_data()
         X_train, X_val, X_test, y_train, y_val, y_test = data_loader.split_data(images, labels)
 
-    print(f"测试集: {X_test.shape}")
+    print(f"Test set: {X_test.shape}")
 
-    # 类别名称
+    # Class names
     class_names = [
         'AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway',
         'Industrial', 'Pasture', 'PermanentCrop', 'Residential',
         'River', 'SeaLake'
     ]
 
-    # 模型路径
+    # Model path
     if args.model_path:
         model_path = args.model_path
     else:
         model_path = os.path.join(args.exp_dir, 'checkpoints', 'best_model.pkl')
 
-    # 评估目录
+    # Evaluation directory
     eval_dir = os.path.join(args.exp_dir, 'evaluation')
     os.makedirs(eval_dir, exist_ok=True)
 
-    # 评估模型
+    # Evaluate model
     results = evaluate_model(model_path, X_test, y_test, class_names, eval_dir)
 
-    # 权重可视化
+    # Weight visualization
     figures_dir = os.path.join(args.exp_dir, 'figures')
     os.makedirs(figures_dir, exist_ok=True)
     visualize_first_layer_weights(model_path, figures_dir)
 
     print("\n" + "=" * 60)
-    print("测试完成!")
-    print(f"测试集准确率: {results['accuracy']:.4f}")
+    print("Test Complete!")
+    print(f"Test Accuracy: {results['accuracy']:.4f}")
     print("=" * 60)
 
     return results
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='模型测试脚本')
+    parser = argparse.ArgumentParser(description='Model Test Script')
 
     parser.add_argument('--data_dir', type=str, default='../EuroSAT_RGB',
-                        help='数据集目录')
+                        help='Dataset directory')
     parser.add_argument('--exp_dir', type=str, required=True,
-                        help='实验目录')
+                        help='Experiment directory')
     parser.add_argument('--model_path', type=str, default=None,
-                        help='模型权重路径 (可选，默认使用实验目录下的最优模型)')
+                        help='Model weights path (optional, default uses best model in experiment directory)')
 
     args = parser.parse_args()
     main(args)

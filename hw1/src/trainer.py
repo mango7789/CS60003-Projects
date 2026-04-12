@@ -1,6 +1,6 @@
 """
-训练模块
-包含训练循环、模型保存等功能
+Training Module
+Contains training loop and model saving
 """
 
 import numpy as np
@@ -15,18 +15,18 @@ from losses import CrossEntropyLoss
 
 
 class Trainer:
-    """训练器类"""
+    """Trainer class"""
 
     def __init__(self, model, optimizer, lr_scheduler, save_dir='./checkpoints', logger=None):
         """
-        初始化训练器
+        Initialize trainer
 
         Args:
-            model: 模型实例
-            optimizer: 优化器实例
-            lr_scheduler: 学习率调度器
-            save_dir: 模型保存目录
-            logger: 日志记录器
+            model: Model instance
+            optimizer: Optimizer instance
+            lr_scheduler: Learning rate scheduler
+            save_dir: Model save directory
+            logger: Logger
         """
         self.model = model
         self.optimizer = optimizer
@@ -34,7 +34,7 @@ class Trainer:
         self.save_dir = save_dir
         self.logger = logger or logging.getLogger(__name__)
 
-        # 训练历史
+        # Training history
         self.history = {
             'train_loss': [],
             'train_acc': [],
@@ -43,7 +43,7 @@ class Trainer:
             'learning_rates': []
         }
 
-        # 最优模型记录
+        # Best model tracking
         self.best_val_acc = 0.0
         self.best_epoch = 0
 
@@ -51,25 +51,25 @@ class Trainer:
 
     def train_epoch(self, X_train, y_train, batch_size, show_progress=False, epoch_num=0, total_epochs=0):
         """
-        训练一个 epoch
+        Train one epoch
 
         Args:
-            X_train: 训练数据
-            y_train: 训练标签 (类别索引)
-            batch_size: 批次大小
-            show_progress: 是否显示进度条
-            epoch_num: 当前 epoch 编号
-            total_epochs: 总 epoch 数
+            X_train: Training data
+            y_train: Training labels (class indices)
+            batch_size: Batch size
+            show_progress: Whether to show progress bar
+            epoch_num: Current epoch number
+            total_epochs: Total epochs
 
         Returns:
-            avg_loss: 平均损失
-            avg_acc: 平均准确率
+            avg_loss: Average loss
+            avg_acc: Average accuracy
         """
         total_loss = 0.0
         total_correct = 0
         total_samples = 0
 
-        # 获取批次数据
+        # Get batch data
         batches = list(get_batches(X_train, y_train, batch_size, shuffle=True))
 
         if show_progress:
@@ -79,30 +79,30 @@ class Trainer:
             pbar = batches
 
         for batch_X, batch_y in pbar:
-            # One-hot 编码
+            # One-hot encoding
             actual_batch_size = batch_X.shape[0]
             y_onehot = np.zeros((actual_batch_size, self.model.output_size))
             y_onehot[np.arange(actual_batch_size), batch_y] = 1
 
-            # 前向传播
+            # Forward propagation
             output = self.model.forward(batch_X)
 
-            # 计算损失
+            # Compute loss
             loss, ce_loss, reg_loss = self.model.compute_loss(output, y_onehot)
 
-            # 反向传播
+            # Backward propagation
             grads = self.model.backward(y_onehot)
 
-            # 参数更新
+            # Parameter update
             self.optimizer.step(self.model.params, grads, self.model.param_names)
 
-            # 统计
+            # Statistics
             total_loss += loss * actual_batch_size
             predictions = np.argmax(output, axis=1)
             total_correct += np.sum(predictions == batch_y)
             total_samples += actual_batch_size
 
-            # 更新进度条信息
+            # Update progress bar info
             if show_progress:
                 current_acc = total_correct / total_samples
                 current_loss = total_loss / total_samples
@@ -115,16 +115,16 @@ class Trainer:
 
     def validate(self, X_val, y_val, batch_size=256):
         """
-        验证模型
+        Validate model
 
         Args:
-            X_val: 验证数据
-            y_val: 验证标签
-            batch_size: 批次大小
+            X_val: Validation data
+            y_val: Validation labels
+            batch_size: Batch size
 
         Returns:
-            avg_loss: 平均损失
-            avg_acc: 平均准确率
+            avg_loss: Average loss
+            avg_acc: Average accuracy
         """
         total_loss = 0.0
         total_correct = 0
@@ -135,13 +135,13 @@ class Trainer:
             y_onehot = np.zeros((actual_batch_size, self.model.output_size))
             y_onehot[np.arange(actual_batch_size), batch_y] = 1
 
-            # 前向传播
+            # Forward propagation
             output = self.model.forward(batch_X)
 
-            # 计算损失
+            # Compute loss
             loss, _, _ = self.model.compute_loss(output, y_onehot)
 
-            # 统计
+            # Statistics
             total_loss += loss * actual_batch_size
             predictions = np.argmax(output, axis=1)
             total_correct += np.sum(predictions == batch_y)
@@ -155,25 +155,25 @@ class Trainer:
     def train(self, X_train, y_train, X_val, y_val,
               epochs=100, batch_size=64, verbose=True, early_stopping_patience=None):
         """
-        完整训练流程
+        Complete training loop
 
         Args:
-            X_train: 训练数据
-            y_train: 训练标签
-            X_val: 验证数据
-            y_val: 验证标签
-            epochs: 训练轮数
-            batch_size: 批次大小
-            verbose: 是否显示进度条
-            early_stopping_patience: Early stopping 耐心值 (None 表示不使用)
+            X_train: Training data
+            y_train: Training labels
+            X_val: Validation data
+            y_val: Validation labels
+            epochs: Number of epochs
+            batch_size: Batch size
+            verbose: Whether to show progress bar
+            early_stopping_patience: Early stopping patience (None means disabled)
 
         Returns:
-            history: 训练历史
+            history: Training history
         """
-        self.logger.info(f"开始训练...")
-        self.logger.info(f"训练样本: {len(X_train)}, 验证样本: {len(X_val)}")
-        self.logger.info(f"批次大小: {batch_size}, 训练轮数: {epochs}")
-        self.logger.info(f"模型参数量: {self.model.count_parameters():,}")
+        self.logger.info("Starting training...")
+        self.logger.info(f"Train samples: {len(X_train)}, Val samples: {len(X_val)}")
+        self.logger.info(f"Batch size: {batch_size}, Epochs: {epochs}")
+        self.logger.info(f"Model parameters: {self.model.count_parameters():,}")
         if early_stopping_patience:
             self.logger.info(f"Early Stopping: patience={early_stopping_patience}")
         self.logger.info("-" * 60)
@@ -181,23 +181,23 @@ class Trainer:
         no_improve_count = 0
 
         for epoch in range(epochs):
-            # 训练一个 epoch (带进度条)
+            # Train one epoch (with progress bar)
             train_loss, train_acc = self.train_epoch(
                 X_train, y_train, batch_size,
                 show_progress=verbose, epoch_num=epoch + 1, total_epochs=epochs
             )
 
-            # 验证
+            # Validate
             val_loss, val_acc = self.validate(X_val, y_val)
 
-            # 记录历史
+            # Record history
             self.history['train_loss'].append(float(train_loss))
             self.history['train_acc'].append(float(train_acc))
             self.history['val_loss'].append(float(val_loss))
             self.history['val_acc'].append(float(val_acc))
             self.history['learning_rates'].append(float(self.optimizer.learning_rate))
 
-            # 保存最优模型
+            # Save best model
             if val_acc > self.best_val_acc:
                 self.best_val_acc = val_acc
                 self.best_epoch = epoch
@@ -206,10 +206,10 @@ class Trainer:
             else:
                 no_improve_count += 1
 
-            # 学习率衰减
+            # Learning rate decay
             self.lr_scheduler.step()
 
-            # 打印本 epoch 结果
+            # Print epoch result
             msg = (f"Epoch {epoch + 1:3d}/{epochs} | "
                    f"Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | "
                    f"Val Loss: {val_loss:.4f} Acc: {val_acc:.4f} | "
@@ -223,36 +223,36 @@ class Trainer:
                 break
 
         self.logger.info("-" * 60)
-        self.logger.info(f"训练完成! 最优验证准确率: {self.best_val_acc:.4f} (Epoch {self.best_epoch + 1})")
+        self.logger.info(f"Training complete! Best val accuracy: {self.best_val_acc:.4f} (Epoch {self.best_epoch + 1})")
 
         return self.history
 
     def save_history(self, filepath):
-        """保存训练历史"""
+        """Save training history"""
         with open(filepath, 'w') as f:
             json.dump(self.history, f, indent=2)
-        self.logger.info(f"训练历史已保存到 {filepath}")
+        self.logger.info(f"Training history saved to {filepath}")
 
 
 def train_model(config, X_train, y_train, X_val, y_val, save_dir, logger=None):
     """
-    根据配置训练模型
+    Train model with config
 
     Args:
-        config: 配置字典
-        X_train, y_train: 训练数据
-        X_val, y_val: 验证数据
-        save_dir: 保存目录
-        logger: 日志记录器
+        config: Config dict
+        X_train, y_train: Training data
+        X_val, y_val: Validation data
+        save_dir: Save directory
+        logger: Logger
 
     Returns:
-        model: 训练好的模型
-        history: 训练历史
+        model: Trained model
+        history: Training history
     """
     if logger is None:
         logger = logging.getLogger(__name__)
 
-    # 创建模型
+    # Create model
     model = ThreeLayerMLP(
         input_size=config['input_size'],
         hidden_size=config['hidden_size'],
@@ -261,14 +261,14 @@ def train_model(config, X_train, y_train, X_val, y_val, save_dir, logger=None):
         weight_decay=config['weight_decay']
     )
 
-    # 创建优化器
+    # Create optimizer
     optimizer = SGDOptimizer(
         learning_rate=config['learning_rate'],
         momentum=config.get('momentum', 0.9),
         weight_decay=config['weight_decay']
     )
 
-    # 创建学习率调度器
+    # Create learning rate scheduler
     lr_scheduler = LearningRateScheduler(
         optimizer,
         decay_type=config.get('lr_decay_type', 'step'),
@@ -277,10 +277,10 @@ def train_model(config, X_train, y_train, X_val, y_val, save_dir, logger=None):
         min_lr=1e-6
     )
 
-    # 创建训练器
+    # Create trainer
     trainer = Trainer(model, optimizer, lr_scheduler, save_dir, logger)
 
-    # 训练
+    # Train
     history = trainer.train(
         X_train, y_train, X_val, y_val,
         epochs=config['epochs'],
@@ -288,7 +288,7 @@ def train_model(config, X_train, y_train, X_val, y_val, save_dir, logger=None):
         verbose=True
     )
 
-    # 保存训练历史
+    # Save training history
     trainer.save_history(os.path.join(save_dir, 'history.json'))
 
     return model, history

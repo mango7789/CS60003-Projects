@@ -1,6 +1,6 @@
 """
-超参数搜索模块
-支持网格搜索和随机搜索
+Hyperparameter Search Module
+Supports grid search and random search
 """
 
 import numpy as np
@@ -14,16 +14,16 @@ from optimizers import SGDOptimizer, LearningRateScheduler
 
 
 class HyperparameterSearch:
-    """超参数搜索"""
+    """Hyperparameter search"""
 
     def __init__(self, X_train, y_train, X_val, y_val, save_dir='./search_results'):
         """
-        初始化超参数搜索
+        Initialize hyperparameter search
 
         Args:
-            X_train, y_train: 训练数据
-            X_val, y_val: 验证数据
-            save_dir: 结果保存目录
+            X_train, y_train: Training data
+            X_val, y_val: Validation data
+            save_dir: Results save directory
         """
         self.X_train = X_train
         self.y_train = y_train
@@ -36,26 +36,26 @@ class HyperparameterSearch:
 
     def grid_search(self, param_grid, epochs=50, batch_size=64):
         """
-        网格搜索
+        Grid search
 
         Args:
-            param_grid: 参数网格字典
-            epochs: 训练轮数
-            batch_size: 批次大小
+            param_grid: Parameter grid dict
+            epochs: Training epochs
+            batch_size: Batch size
 
         Returns:
-            best_params: 最优参数
-            best_acc: 最优准确率
+            best_params: Best parameters
+            best_acc: Best accuracy
         """
-        print("开始网格搜索...")
-        print(f"参数网格: {param_grid}")
+        print("Starting grid search...")
+        print(f"Parameter grid: {param_grid}")
 
-        # 生成所有参数组合
+        # Generate all parameter combinations
         keys = param_grid.keys()
         values = param_grid.values()
         combinations = list(itertools.product(*values))
 
-        print(f"总共 {len(combinations)} 种参数组合")
+        print(f"Total {len(combinations)} parameter combinations")
         print("-" * 60)
 
         best_acc = 0.0
@@ -64,60 +64,60 @@ class HyperparameterSearch:
 
         for idx, combo in enumerate(combinations):
             params = dict(zip(keys, combo))
-            print(f"\n[{idx + 1}/{len(combinations)}] 参数: {params}")
+            print(f"\n[{idx + 1}/{len(combinations)}] Params: {params}")
 
-            # 训练模型
+            # Train model
             val_acc = self._train_and_evaluate(params, epochs, batch_size, idx)
 
-            # 记录结果
+            # Record result
             result = {
                 'params': params,
-                'val_acc': val_acc,
+                'val_acc': float(val_acc),
                 'idx': idx
             }
             self.results.append(result)
 
-            # 更新最优
+            # Update best
             if val_acc > best_acc:
                 best_acc = val_acc
                 best_params = params
                 best_idx = idx
 
-            print(f"验证准确率: {val_acc:.4f} | 当前最优: {best_acc:.4f}")
+            print(f"Val accuracy: {val_acc:.4f} | Best: {best_acc:.4f}")
 
         print("-" * 60)
-        print(f"网格搜索完成!")
-        print(f"最优参数: {best_params}")
-        print(f"最优准确率: {best_acc:.4f}")
+        print("Grid search complete!")
+        print(f"Best params: {best_params}")
+        print(f"Best accuracy: {best_acc:.4f}")
 
-        # 保存结果
+        # Save results
         self._save_results()
 
         return best_params, best_acc
 
     def random_search(self, param_distributions, n_trials=20, epochs=50, batch_size=64):
         """
-        随机搜索
+        Random search
 
         Args:
-            param_distributions: 参数分布字典
-            n_trials: 搜索次数
-            epochs: 训练轮数
-            batch_size: 批次大小
+            param_distributions: Parameter distribution dict
+            n_trials: Number of trials
+            epochs: Training epochs
+            batch_size: Batch size
 
         Returns:
-            best_params: 最优参数
-            best_acc: 最优准确率
+            best_params: Best parameters
+            best_acc: Best accuracy
         """
-        print("开始随机搜索...")
-        print(f"搜索次数: {n_trials}")
+        print("Starting random search...")
+        print(f"Number of trials: {n_trials}")
         print("-" * 60)
 
         best_acc = 0.0
         best_params = None
 
         for trial in range(n_trials):
-            # 随机采样参数
+            # Random sample parameters
             params = {}
             for key, value in param_distributions.items():
                 if isinstance(value, list):
@@ -129,50 +129,50 @@ class HyperparameterSearch:
                 else:
                     params[key] = value
 
-            print(f"\n[{trial + 1}/{n_trials}] 参数: {params}")
+            print(f"\n[{trial + 1}/{n_trials}] Params: {params}")
 
-            # 训练模型
+            # Train model
             val_acc = self._train_and_evaluate(params, epochs, batch_size, trial)
 
-            # 记录结果
+            # Record result
             result = {
                 'params': params,
-                'val_acc': val_acc,
+                'val_acc': float(val_acc),
                 'trial': trial
             }
             self.results.append(result)
 
-            # 更新最优
+            # Update best
             if val_acc > best_acc:
                 best_acc = val_acc
                 best_params = params
 
-            print(f"验证准确率: {val_acc:.4f} | 当前最优: {best_acc:.4f}")
+            print(f"Val accuracy: {val_acc:.4f} | Best: {best_acc:.4f}")
 
         print("-" * 60)
-        print(f"随机搜索完成!")
-        print(f"最优参数: {best_params}")
-        print(f"最优准确率: {best_acc:.4f}")
+        print("Random search complete!")
+        print(f"Best params: {best_params}")
+        print(f"Best accuracy: {best_acc:.4f}")
 
-        # 保存结果
+        # Save results
         self._save_results()
 
         return best_params, best_acc
 
     def _train_and_evaluate(self, params, epochs, batch_size, idx):
         """
-        训练并评估模型
+        Train and evaluate model
 
         Args:
-            params: 参数字典
-            epochs: 训练轮数
-            batch_size: 批次大小
-            idx: 实验索引
+            params: Parameter dict
+            epochs: Training epochs
+            batch_size: Batch size
+            idx: Experiment index
 
         Returns:
-            val_acc: 验证准确率
+            val_acc: Validation accuracy
         """
-        # 创建模型
+        # Create model
         model = ThreeLayerMLP(
             input_size=12288,
             hidden_size=params.get('hidden_size', 256),
@@ -181,14 +181,14 @@ class HyperparameterSearch:
             weight_decay=params.get('weight_decay', 0.0001)
         )
 
-        # 创建优化器
+        # Create optimizer
         optimizer = SGDOptimizer(
             learning_rate=params.get('learning_rate', 0.01),
             momentum=params.get('momentum', 0.9),
             weight_decay=params.get('weight_decay', 0.0001)
         )
 
-        # 创建学习率调度器
+        # Create learning rate scheduler
         lr_scheduler = LearningRateScheduler(
             optimizer,
             decay_type='step',
@@ -197,11 +197,11 @@ class HyperparameterSearch:
             min_lr=1e-6
         )
 
-        # 创建保存目录
+        # Create save directory
         exp_dir = os.path.join(self.save_dir, f'exp_{idx}')
         os.makedirs(exp_dir, exist_ok=True)
 
-        # 训练
+        # Train
         trainer = Trainer(model, optimizer, lr_scheduler, exp_dir)
         history = trainer.train(
             self.X_train, self.y_train, self.X_val, self.y_val,
@@ -210,27 +210,27 @@ class HyperparameterSearch:
             verbose=False
         )
 
-        # 返回最优验证准确率
+        # Return best validation accuracy
         return max(history['val_acc'])
 
     def _save_results(self):
-        """保存搜索结果"""
+        """Save search results"""
         results_file = os.path.join(self.save_dir, 'search_results.json')
         with open(results_file, 'w') as f:
             json.dump(self.results, f, indent=2)
-        print(f"\n搜索结果已保存到 {results_file}")
+        print(f"\nSearch results saved to {results_file}")
 
 
 if __name__ == "__main__":
-    # 测试超参数搜索
+    # Test hyperparameter search
     from data_loader import DataLoader
 
-    # 加载数据
+    # Load data
     loader = DataLoader('../../EuroSAT_RGB')
     images, labels = loader.load_data()
     X_train, X_val, X_test, y_train, y_val, y_test = loader.split_data(images, labels)
 
-    # 定义参数网格
+    # Define parameter grid
     param_grid = {
         'hidden_size': [128, 256],
         'learning_rate': [0.01, 0.001],
@@ -238,6 +238,6 @@ if __name__ == "__main__":
         'weight_decay': [0.0001, 0.001]
     }
 
-    # 网格搜索
+    # Grid search
     searcher = HyperparameterSearch(X_train, y_train, X_val, y_val, './search_results')
     best_params, best_acc = searcher.grid_search(param_grid, epochs=10, batch_size=64)

@@ -1,6 +1,6 @@
 """
-三层神经网络模型
-从零实现，包含自动微分与反向传播
+Three-Layer Neural Network Model
+Implemented from scratch with automatic differentiation and backpropagation
 """
 
 import numpy as np
@@ -10,20 +10,20 @@ from losses import CrossEntropyLoss, L2Regularization
 
 
 class ThreeLayerMLP:
-    """三层全连接神经网络"""
+    """Three-layer fully connected neural network"""
 
     def __init__(self, input_size, hidden_size, output_size, activation='relu',
                  weight_decay=0.0, seed=None):
         """
-        初始化三层神经网络
+        Initialize three-layer neural network
 
         Args:
-            input_size: 输入维度
-            hidden_size: 隐藏层大小
-            output_size: 输出维度 (类别数)
-            activation: 激活函数 ('relu', 'sigmoid', 'tanh')
-            weight_decay: L2 正则化系数
-            seed: 随机种子 (None 表示不设置)
+            input_size: Input dimension
+            hidden_size: Hidden layer size
+            output_size: Output dimension (number of classes)
+            activation: Activation function ('relu', 'sigmoid', 'tanh')
+            weight_decay: L2 regularization coefficient
+            seed: Random seed (None means no fixed seed)
         """
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -32,36 +32,37 @@ class ThreeLayerMLP:
         self.weight_decay = weight_decay
         self.seed = seed
 
-        # 初始化权重 (He 初始化)
+        # Initialize weights (He initialization)
         self.params = {}
         self._init_weights()
 
-        # 激活函数
-        self.activation1 = get_activation(activation)  # 第一隐藏层
-        self.activation2 = get_activation(activation)  # 第二隐藏层
-        self.softmax = Softmax()  # 输出层
+        # Activation functions
+        self.activation1 = get_activation(activation)  # First hidden layer
+        self.activation2 = get_activation(activation)  # Second hidden layer
+        self.softmax = Softmax()  # Output layer
 
-        # 损失函数
+        # Loss function
         self.loss_fn = CrossEntropyLoss()
 
-        # 缓存用于反向传播
+        # Cache for backpropagation
         self.cache = {}
 
     def _init_weights(self):
-        """初始化权重参数"""
+        """Initialize weight parameters"""
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        # He 初始化 (适合 ReLU)
+        # Smaller initialization scale to prevent gradient explosion
+        # He initialization (for ReLU)
         if self.activation_name == 'relu':
-            scale1 = np.sqrt(2.0 / self.input_size)
-            scale2 = np.sqrt(2.0 / self.hidden_size)
-            scale3 = np.sqrt(2.0 / self.hidden_size)
-        # Xavier 初始化 (适合 Sigmoid/Tanh)
+            scale1 = np.sqrt(2.0 / self.input_size) * 0.1
+            scale2 = np.sqrt(2.0 / self.hidden_size) * 0.1
+            scale3 = np.sqrt(2.0 / self.hidden_size) * 0.1
+        # Xavier initialization (for Sigmoid/Tanh)
         else:
-            scale1 = np.sqrt(1.0 / self.input_size)
-            scale2 = np.sqrt(1.0 / self.hidden_size)
-            scale3 = np.sqrt(1.0 / self.hidden_size)
+            scale1 = np.sqrt(1.0 / self.input_size) * 0.1
+            scale2 = np.sqrt(1.0 / self.hidden_size) * 0.1
+            scale3 = np.sqrt(1.0 / self.hidden_size) * 0.1
 
         self.params = {
             'W1': np.random.randn(self.input_size, self.hidden_size) * scale1,
@@ -72,18 +73,18 @@ class ThreeLayerMLP:
             'b3': np.zeros(self.output_size)
         }
 
-        # 缓存参数名
+        # Cache parameter names
         self.param_names = ['W1', 'b1', 'W2', 'b2', 'W3', 'b3']
 
     def count_parameters(self):
-        """计算模型参数总数"""
+        """Count total model parameters"""
         total = 0
         for name in self.param_names:
             total += self.params[name].size
         return total
 
     def get_layer_shapes(self):
-        """获取各层参数形状"""
+        """Get layer parameter shapes"""
         shapes = {}
         for name in self.param_names:
             shapes[name] = self.params[name].shape
@@ -91,27 +92,27 @@ class ThreeLayerMLP:
 
     def forward(self, X):
         """
-        前向传播
+        Forward propagation
 
         Args:
-            X: 输入数据, shape (N, input_size)
+            X: Input data, shape (N, input_size)
 
         Returns:
-            output: 预测概率, shape (N, output_size)
+            output: Predicted probabilities, shape (N, output_size)
         """
-        # 第一层
+        # First layer
         z1 = X @ self.params['W1'] + self.params['b1']
         a1 = self.activation1.forward(z1)
 
-        # 第二层
+        # Second layer
         z2 = a1 @ self.params['W2'] + self.params['b2']
         a2 = self.activation2.forward(z2)
 
-        # 第三层 (输出层)
+        # Third layer (output layer)
         z3 = a2 @ self.params['W3'] + self.params['b3']
         output = self.softmax.forward(z3)
 
-        # 缓存用于反向传播
+        # Cache for backpropagation
         self.cache = {
             'X': X,
             'z1': z1, 'a1': a1,
@@ -123,39 +124,39 @@ class ThreeLayerMLP:
 
     def backward(self, y_true):
         """
-        反向传播
+        Backward propagation
 
         Args:
-            y_true: 真实标签 (one-hot), shape (N, output_size)
+            y_true: True labels (one-hot), shape (N, output_size)
 
         Returns:
-            grads: 参数梯度字典
+            grads: Parameter gradient dict
         """
         grads = {}
         batch_size = y_true.shape[0]
 
-        # 输出层梯度 (交叉熵 + softmax 的组合梯度)
+        # Output layer gradient (cross-entropy + softmax combined gradient)
         dz3 = self.cache['output'] - y_true  # (N, output_size)
 
-        # 第三层权重梯度
+        # Third layer weight gradient
         grads['W3'] = self.cache['a2'].T @ dz3  # (hidden_size, output_size)
         grads['b3'] = np.sum(dz3, axis=0)  # (output_size,)
 
-        # 第二层梯度
+        # Second layer gradient
         da2 = dz3 @ self.params['W3'].T  # (N, hidden_size)
-        dz2 = self.activation2.backward(da2)  # 激活函数反向传播
+        dz2 = self.activation2.backward(da2)  # Activation backward
 
         grads['W2'] = self.cache['a1'].T @ dz2  # (hidden_size, hidden_size)
         grads['b2'] = np.sum(dz2, axis=0)  # (hidden_size,)
 
-        # 第一层梯度
+        # First layer gradient
         da1 = dz2 @ self.params['W2'].T  # (N, hidden_size)
-        dz1 = self.activation1.backward(da1)  # 激活函数反向传播
+        dz1 = self.activation1.backward(da1)  # Activation backward
 
         grads['W1'] = self.cache['X'].T @ dz1  # (input_size, hidden_size)
         grads['b1'] = np.sum(dz1, axis=0)  # (hidden_size,)
 
-        # 添加 L2 正则化梯度
+        # Add L2 regularization gradient
         if self.weight_decay > 0:
             grads['W1'] += self.weight_decay * self.params['W1']
             grads['W2'] += self.weight_decay * self.params['W2']
@@ -165,21 +166,21 @@ class ThreeLayerMLP:
 
     def compute_loss(self, y_pred, y_true):
         """
-        计算总损失 (交叉熵 + L2 正则化)
+        Compute total loss (cross-entropy + L2 regularization)
 
         Args:
-            y_pred: 预测概率
-            y_true: 真实标签
+            y_pred: Predicted probabilities
+            y_true: True labels
 
         Returns:
-            loss: 总损失
-            ce_loss: 交叉熵损失
-            reg_loss: 正则化损失
+            loss: Total loss
+            ce_loss: Cross-entropy loss
+            reg_loss: Regularization loss
         """
-        # 交叉熵损失
+        # Cross-entropy loss
         ce_loss = self.loss_fn.forward(y_pred, y_true)
 
-        # L2 正则化损失
+        # L2 regularization loss
         reg_loss = 0.0
         if self.weight_decay > 0:
             for key in ['W1', 'W2', 'W3']:
@@ -190,45 +191,45 @@ class ThreeLayerMLP:
 
     def predict(self, X):
         """
-        预测类别
+        Predict class
 
         Args:
-            X: 输入数据
+            X: Input data
 
         Returns:
-            predictions: 预测类别索引
+            predictions: Predicted class indices
         """
         output = self.forward(X)
         return np.argmax(output, axis=1)
 
     def predict_proba(self, X):
         """
-        预测概率
+        Predict probabilities
 
         Args:
-            X: 输入数据
+            X: Input data
 
         Returns:
-            proba: 预测概率
+            proba: Predicted probabilities
         """
         return self.forward(X)
 
     def accuracy(self, X, y):
         """
-        计算准确率
+        Compute accuracy
 
         Args:
-            X: 输入数据
-            y: 真实标签 (类别索引)
+            X: Input data
+            y: True labels (class indices)
 
         Returns:
-            acc: 准确率
+            acc: Accuracy
         """
         predictions = self.predict(X)
         return np.mean(predictions == y)
 
     def save_weights(self, filepath):
-        """保存模型权重"""
+        """Save model weights"""
         with open(filepath, 'wb') as f:
             pickle.dump({
                 'params': self.params,
@@ -240,18 +241,18 @@ class ThreeLayerMLP:
                     'weight_decay': self.weight_decay
                 }
             }, f)
-        print(f"模型权重已保存到 {filepath}")
+        print(f"Model weights saved to {filepath}")
 
     def load_weights(self, filepath):
-        """加载模型权重"""
+        """Load model weights"""
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
         self.params = data['params']
-        print(f"模型权重已从 {filepath} 加载")
+        print(f"Model weights loaded from {filepath}")
 
     @classmethod
     def from_file(cls, filepath):
-        """从文件加载模型"""
+        """Load model from file"""
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
 
@@ -267,7 +268,7 @@ class ThreeLayerMLP:
 
 
 if __name__ == "__main__":
-    # 测试模型
+    # Test model
     model = ThreeLayerMLP(
         input_size=12288,
         hidden_size=256,
@@ -275,25 +276,25 @@ if __name__ == "__main__":
         activation='relu'
     )
 
-    # 随机测试数据
+    # Random test data
     X = np.random.randn(32, 12288).astype(np.float32)
     y = np.random.randint(0, 10, 32)
     y_onehot = np.zeros((32, 10))
     y_onehot[np.arange(32), y] = 1
 
-    # 前向传播
+    # Forward propagation
     output = model.forward(X)
-    print(f"输出形状: {output.shape}")
-    print(f"输出和: {output.sum(axis=1)[:5]}")  # 应该接近 1
+    print(f"Output shape: {output.shape}")
+    print(f"Output sum: {output.sum(axis=1)[:5]}")  # Should be close to 1
 
-    # 计算损失
+    # Compute loss
     loss, ce_loss, reg_loss = model.compute_loss(output, y_onehot)
-    print(f"总损失: {loss:.4f}")
+    print(f"Total loss: {loss:.4f}")
 
-    # 反向传播
+    # Backward propagation
     grads = model.backward(y_onehot)
-    print(f"梯度形状: W1 {grads['W1'].shape}, W2 {grads['W2'].shape}, W3 {grads['W3'].shape}")
+    print(f"Gradient shapes: W1 {grads['W1'].shape}, W2 {grads['W2'].shape}, W3 {grads['W3'].shape}")
 
-    # 准确率
+    # Accuracy
     acc = model.accuracy(X, y)
-    print(f"准确率: {acc:.4f}")
+    print(f"Accuracy: {acc:.4f}")
