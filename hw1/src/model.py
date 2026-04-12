@@ -52,17 +52,16 @@ class ThreeLayerMLP:
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        # Smaller initialization scale to prevent gradient explosion
-        # He initialization (for ReLU)
+        # He initialization (for ReLU) - standard scale
         if self.activation_name == 'relu':
-            scale1 = np.sqrt(2.0 / self.input_size) * 0.1
-            scale2 = np.sqrt(2.0 / self.hidden_size) * 0.1
-            scale3 = np.sqrt(2.0 / self.hidden_size) * 0.1
+            scale1 = np.sqrt(2.0 / self.input_size)
+            scale2 = np.sqrt(2.0 / self.hidden_size)
+            scale3 = np.sqrt(2.0 / self.hidden_size)
         # Xavier initialization (for Sigmoid/Tanh)
         else:
-            scale1 = np.sqrt(1.0 / self.input_size) * 0.1
-            scale2 = np.sqrt(1.0 / self.hidden_size) * 0.1
-            scale3 = np.sqrt(1.0 / self.hidden_size) * 0.1
+            scale1 = np.sqrt(1.0 / self.input_size)
+            scale2 = np.sqrt(1.0 / self.hidden_size)
+            scale3 = np.sqrt(1.0 / self.hidden_size)
 
         self.params = {
             'W1': np.random.randn(self.input_size, self.hidden_size) * scale1,
