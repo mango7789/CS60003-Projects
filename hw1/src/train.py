@@ -81,7 +81,8 @@ def main(args):
     logger.info("\n[1/5] Data Loading...")
     data_loader = DataLoader(args.data_dir, img_size=64)
 
-    processed_data_dir = os.path.join(exp_dir, 'processed_data')
+    # Use fixed cache directory for preprocessed data (shared across experiments)
+    processed_data_dir = os.path.join(args.output_dir, 'preprocessed_data')
     if os.path.exists(os.path.join(processed_data_dir, 'processed_data.npz')):
         logger.info("Loading preprocessed data...")
         X_train, X_val, X_test, y_train, y_val, y_test = data_loader.load_processed_data(processed_data_dir)
