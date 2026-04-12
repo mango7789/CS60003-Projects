@@ -1,0 +1,627 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{longtable}
+
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    breaklines=true,
+    captionpos=b
+}
+
+\title{\textbf{HW1: Building a Three-Layer Neural Network Classifier from Scratch}\\
+\large Land Cover Image Classification on EuroSAT Dataset}
+\author{\TODO{Your Name}\\
+\TODO{Your Student ID}\\
+\TODO{Your Major/Department}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This assignment implements a three-layer fully connected neural network (MLP) classifier from scratch without using any deep learning frameworks such as PyTorch or TensorFlow. All matrix operations and automatic differentiation are implemented using only NumPy. The model is trained on the EuroSAT satellite image dataset for land cover classification with 10 categories. Experimental results demonstrate that the proposed model achieves \TODO{XX.XX\%} accuracy on the test set. This report provides a detailed description of the model architecture, data processing pipeline, training procedure, hyperparameter optimization, weight visualization, and error analysis.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%==============================================================================
+\section{Introduction}
+%==============================================================================
+
+\subsection{Task Description}
+The objective of this assignment is to manually implement a three-layer neural network (MLP) classifier and train it on the EuroSAT remote sensing image dataset for land cover classification. EuroSAT contains 10 land cover categories including forests, rivers, highways, residential areas, and other terrain types.
+
+\subsection{Assignment Requirements}
+The assignment requires the following components:
+
+\begin{itemize}
+    \item \textbf{Automatic Differentiation}: Implement backpropagation without using PyTorch, TensorFlow, JAX, or other frameworks with built-in automatic differentiation. Only NumPy is allowed for matrix operations.
+
+    \item \textbf{Code Structure}: The submitted code must include at least five modules: data loading and preprocessing, model definition, training loop, testing and evaluation, and hyperparameter search. Object-oriented and modular design is encouraged.
+
+    \item \textbf{Model and Optimization Details}:
+    \begin{itemize}
+        \item Support customizable hidden layer dimensions
+        \item Support at least two activation functions (e.g., ReLU and Sigmoid/Tanh)
+        \item Compute gradients via backpropagation
+        \item Implement SGD optimizer with momentum
+        \item Implement learning rate decay strategies
+        \item Implement cross-entropy loss function
+        \item Implement L2 regularization (weight decay)
+        \item Automatically save the best model based on validation accuracy
+    \end{itemize}
+
+    \item \textbf{Hyperparameter Search}: Use grid search or random search to tune hyperparameters such as learning rate, hidden layer size, and regularization strength. Record and analyze model performance under different hyperparameter combinations.
+
+    \item \textbf{Testing and Evaluation}: Support loading trained model weights, output classification accuracy on the independent test set, and print the confusion matrix.
+\end{itemize}
+
+%==============================================================================
+\section{Dataset}
+%==============================================================================
+
+\subsection{EuroSAT Dataset Overview}
+EuroSAT is a land cover classification dataset based on Sentinel-2 satellite images. The dataset contains 27,000 images with 10 classes, each image being a $64 \times 64$ RGB image.
+
+\begin{table}[H]
+\centering
+\caption{EuroSAT Dataset Class Distribution}
+\begin{tabular}{clcc}
+\toprule
+\textbf{Class ID} & \textbf{Class Name} & \textbf{Description} & \textbf{Samples} \\
+\midrule
+0 & AnnualCrop & Annual cropland & 3,000 \\
+1 & Forest & Natural forest & 3,000 \\
+2 & HerbaceousVegetation & Grassland and meadows & 3,000 \\
+3 & Highway & Roads and highways & 2,500 \\
+4 & Industrial & Industrial facilities & 2,500 \\
+5 & Pasture & Grazing pastures & 2,000 \\
+6 & PermanentCrop & Permanent crops (vineyards, orchards) & 2,500 \\
+7 & Residential & Urban residential areas & 3,000 \\
+8 & River & Natural watercourses & 2,500 \\
+9 & SeaLake & Sea and lake water bodies & 3,000 \\
+\midrule
+\textbf{Total} & & & \textbf{27,000} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Data Preprocessing}
+The following preprocessing steps are applied to the images:
+
+\begin{itemize}
+    \item \textbf{Image Format}: Original images are $64 \times 64$ pixels RGB color images
+    \item \textbf{Normalization}: Pixel values are normalized from $[0, 255]$ to $[0, 1]$
+    \item \textbf{Flattening}: 3D images are flattened to 1D vectors with dimension $64 \times 64 \times 3 = 12,288$
+    \item \textbf{Dataset Splitting}: 70\% training, 15\% validation, 15\% test
+\end{itemize}
+
+After splitting:
+\begin{itemize}
+    \item Training set: 18,900 samples
+    \item Validation set: 4,050 samples
+    \item Test set: 4,050 samples
+\end{itemize}
+
+%==============================================================================
+\section{Model Architecture}
+%==============================================================================
+
+\subsection{Network Structure}
+The three-layer fully connected neural network architecture is defined as follows:
+
+\begin{equation}
+\begin{aligned}
+\mathbf{z}^{(1)} &= \mathbf{W}^{(1)} \mathbf{x} + \mathbf{b}^{(1)} \\
+\mathbf{a}^{(1)} &= \sigma(\mathbf{z}^{(1)}) \\
+\mathbf{z}^{(2)} &= \mathbf{W}^{(2)} \mathbf{a}^{(1)} + \mathbf{b}^{(2)} \\
+\mathbf{a}^{(2)} &= \sigma(\mathbf{z}^{(2)}) \\
+\mathbf{z}^{(3)} &= \mathbf{W}^{(3)} \mathbf{a}^{(2)} + \mathbf{b}^{(3)} \\
+\hat{\mathbf{y}} &= \text{softmax}(\mathbf{z}^{(3)})
+\end{aligned}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\mathbf{x} \in \mathbb{R}^{12288}$: Input vector (flattened image)
+    \item $\mathbf{W}^{(1)} \in \mathbb{R}^{12288 \times H}$, $\mathbf{b}^{(1)} \in \mathbb{R}^{H}$: First layer weights and bias
+    \item $\mathbf{W}^{(2)} \in \mathbb{R}^{H \times H}$, $\mathbf{b}^{(2)} \in \mathbb{R}^{H}$: Second layer weights and bias
+    \item $\mathbf{W}^{(3)} \in \mathbb{R}^{H \times 10}$, $\mathbf{b}^{(3)} \in \mathbb{R}^{10}$: Output layer weights and bias
+    \item $H$: Hidden layer size (tunable hyperparameter)
+    \item $\sigma$: Activation function (supports ReLU, Sigmoid, Tanh)
+\end{itemize}
+
+\subsection{Activation Functions}
+
+\subsubsection{ReLU (Rectified Linear Unit)}
+\begin{equation}
+\text{ReLU}(x) = \max(0, x)
+\end{equation}
+
+Derivative:
+\begin{equation}
+\text{ReLU}'(x) = \begin{cases} 1, & x > 0 \\ 0, & x \leq 0 \end{cases}
+\end{equation}
+
+\subsubsection{Sigmoid}
+\begin{equation}
+\text{Sigmoid}(x) = \frac{1}{1 + e^{-x}}
+\end{equation}
+
+Derivative:
+\begin{equation}
+\text{Sigmoid}'(x) = \sigma(x)(1 - \sigma(x))
+\end{equation}
+
+\subsubsection{Tanh}
+\begin{equation}
+\text{Tanh}(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}
+\end{equation}
+
+Derivative:
+\begin{equation}
+\text{Tanh}'(x) = 1 - \tanh^2(x)
+\end{equation}
+
+\subsubsection{Softmax}
+\begin{equation}
+\text{Softmax}(x_i) = \frac{e^{x_i}}{\sum_{j=1}^{C} e^{x_j}}
+\end{equation}
+
+\subsection{Loss Function}
+The cross-entropy loss with L2 regularization is used:
+
+\begin{equation}
+\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C} y_{ic} \log(\hat{y}_{ic}) + \frac{\lambda}{2}\sum_{l=1}^{3} \|\mathbf{W}^{(l)}\|_F^2
+\end{equation}
+
+Where $N$ is the batch size, $C=10$ is the number of classes, and $\lambda$ is the weight decay coefficient.
+
+\subsection{Weight Initialization}
+He initialization (for ReLU) or Xavier initialization (for Sigmoid/Tanh) is used:
+
+\begin{equation}
+W_{ij} \sim \mathcal{N}\left(0, \sqrt{\frac{2}{n_{in}}}\right) \quad \text{(He Initialization)}
+\end{equation}
+
+\begin{equation}
+W_{ij} \sim \mathcal{N}\left(0, \sqrt{\frac{1}{n_{in}}}\right) \quad \text{(Xavier Initialization)}
+\end{equation}
+
+%==============================================================================
+\section{Backpropagation Algorithm}
+%==============================================================================
+
+\subsection{Forward Propagation}
+\begin{algorithm}[H]
+\caption{Forward Propagation}
+\begin{algorithmic}[1]
+\REQUIRE Input $\mathbf{X} \in \mathbb{R}^{N \times 12288}$
+\ENSURE Output probabilities $\hat{\mathbf{Y}} \in \mathbb{R}^{N \times 10}$
+\STATE $\mathbf{Z}^{(1)} = \mathbf{X}\mathbf{W}^{(1)} + \mathbf{b}^{(1)}$
+\STATE $\mathbf{A}^{(1)} = \sigma(\mathbf{Z}^{(1)})$
+\STATE $\mathbf{Z}^{(2)} = \mathbf{A}^{(1)}\mathbf{W}^{(2)} + \mathbf{b}^{(2)}$
+\STATE $\mathbf{A}^{(2)} = \sigma(\mathbf{Z}^{(2)})$
+\STATE $\mathbf{Z}^{(3)} = \mathbf{A}^{(2)}\mathbf{W}^{(3)} + \mathbf{b}^{(3)}$
+\STATE $\hat{\mathbf{Y}} = \text{softmax}(\mathbf{Z}^{(3)})$
+\RETURN $\hat{\mathbf{Y}}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Backward Propagation}
+\begin{algorithm}[H]
+\caption{Backward Propagation}
+\begin{algorithmic}[1]
+\REQUIRE Predictions $\hat{\mathbf{Y}}$, Ground truth $\mathbf{Y}$
+\ENSURE Gradients $\nabla\mathbf{W}^{(l)}, \nabla\mathbf{b}^{(l)}$
+\STATE $\delta^{(3)} = \hat{\mathbf{Y}} - \mathbf{Y}$ \COMMENT{Output layer error}
+\STATE $\nabla\mathbf{W}^{(3)} = (\mathbf{A}^{(2)})^T \delta^{(3)} / N$
+\STATE $\nabla\mathbf{b}^{(3)} = \sum_{i}\delta^{(3)}_i / N$
+\STATE $\delta^{(2)} = \delta^{(3)}(\mathbf{W}^{(3)})^T \odot \sigma'(\mathbf{Z}^{(2)})$
+\STATE $\nabla\mathbf{W}^{(2)} = (\mathbf{A}^{(1)})^T \delta^{(2)} / N$
+\STATE $\nabla\mathbf{b}^{(2)} = \sum_{i}\delta^{(2)}_i / N$
+\STATE $\delta^{(1)} = \delta^{(2)}(\mathbf{W}^{(2)})^T \odot \sigma'(\mathbf{Z}^{(1)})$
+\STATE $\nabla\mathbf{W}^{(1)} = \mathbf{X}^T \delta^{(1)} / N$
+\STATE $\nabla\mathbf{b}^{(1)} = \sum_{i}\delta^{(1)}_i / N$
+\RETURN All gradients
+\end{algorithmic}
+\end{algorithm}
+
+%==============================================================================
+\section{Optimization}
+%==============================================================================
+
+\subsection{SGD Optimizer with Momentum}
+Stochastic Gradient Descent with momentum is used for optimization:
+
+\begin{equation}
+\begin{aligned}
+\mathbf{v}_t &= \beta \mathbf{v}_{t-1} - \eta \nabla\mathcal{L} \\
+\mathbf{\theta}_t &= \mathbf{\theta}_{t-1} + \mathbf{v}_t
+\end{aligned}
+\end{equation}
+
+Where $\eta$ is the learning rate and $\beta$ is the momentum coefficient (default: 0.9).
+
+\subsection{Learning Rate Decay}
+Multiple learning rate decay strategies are supported:
+
+\subsubsection{Step Decay}
+\begin{equation}
+\eta_t = \eta_0 \cdot \gamma^{\lfloor t / T \rfloor}
+\end{equation}
+
+Where $\gamma$ is the decay rate and $T$ is the decay period.
+
+\subsubsection{Exponential Decay}
+\begin{equation}
+\eta_t = \eta_0 \cdot \gamma^t
+\end{equation}
+
+\subsubsection{Cosine Annealing}
+\begin{equation}
+\eta_t = \eta_{min} + \frac{1}{2}(\eta_0 - \eta_{min})(1 + \cos(\frac{\pi t}{T}))
+\end{equation}
+
+\subsubsection{Linear Decay}
+\begin{equation}
+\eta_t = \eta_0 - \frac{\eta_0 - \eta_{min}}{T} \cdot t
+\end{equation}
+
+%==============================================================================
+\section{Hyperparameter Search}
+%==============================================================================
+
+\subsection{Grid Search}
+The following hyperparameter space is explored using grid search:
+
+\begin{table}[H]
+\centering
+\caption{Grid Search Hyperparameter Space}
+\begin{tabular}{cc}
+\toprule
+\textbf{Hyperparameter} & \textbf{Search Range} \\
+\midrule
+Hidden Size & [128, 256, 512] \\
+Learning Rate & [0.001, 0.01, 0.05] \\
+Activation & [ReLU, Tanh] \\
+Weight Decay & [0.0001, 0.001, 0.01] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Search Results}
+\TODO{Fill in the hyperparameter search results}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameter Search Results (Top 5)}
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Rank} & \textbf{Hidden} & \textbf{LR} & \textbf{Activation} & \textbf{Weight Decay} & \textbf{Val Acc} \\
+\midrule
+1 & \TODO{256} & \TODO{0.01} & \TODO{ReLU} & \TODO{0.0001} & \TODO{XX.XX\%} \\
+2 & \TODO{512} & \TODO{0.01} & \TODO{ReLU} & \TODO{0.0001} & \TODO{XX.XX\%} \\
+3 & \TODO{256} & \TODO{0.01} & \TODO{Tanh} & \TODO{0.001} & \TODO{XX.XX\%} \\
+4 & \TODO{128} & \TODO{0.01} & \TODO{ReLU} & \TODO{0.001} & \TODO{XX.XX\%} \\
+5 & \TODO{256} & \TODO{0.001} & \TODO{ReLU} & \TODO{0.0001} & \TODO{XX.XX\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Final Hyperparameter Configuration}
+Based on the hyperparameter search results, the final configuration is:
+
+\begin{table}[H]
+\centering
+\caption{Final Hyperparameter Configuration}
+\begin{tabular}{cc}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Hidden Size & \TODO{256} \\
+Learning Rate & \TODO{0.01} \\
+Activation & \TODO{ReLU} \\
+Weight Decay & \TODO{0.0001} \\
+Momentum & \TODO{0.9} \\
+Batch Size & \TODO{64} \\
+Epochs & \TODO{100} \\
+LR Decay Type & \TODO{Step} \\
+LR Decay Rate & \TODO{0.5} \\
+LR Decay Steps & \TODO{30} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Experimental Results}
+%==============================================================================
+
+\subsection{Training Curves}
+Figure~\ref{fig:training_curves} shows the loss and accuracy curves during training.
+
+\begin{figure}[H]
+\centering
+\TODO{Insert training_curves.png here}
+% \includegraphics[width=0.9\textwidth]{figures/training_curves.png}
+\caption{Training and Validation Loss/Accuracy Curves}
+\label{fig:training_curves}
+\end{figure}
+
+\textbf{Observations:}
+\begin{itemize}
+    \item Both training and validation loss decrease over training epochs, indicating successful learning
+    \item The validation accuracy reaches its optimum at epoch \TODO{XX}
+    \item The gap between training and validation curves is small, suggesting no significant overfitting
+    \item \TODO{Add more observations based on your results}
+\end{itemize}
+
+\subsection{Test Set Performance}
+
+\begin{table}[H]
+\centering
+\caption{Test Set Performance Metrics}
+\begin{tabular}{cc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Test Accuracy & \TODO{XX.XX\%} \\
+Best Validation Accuracy & \TODO{XX.XX\%} \\
+Best Epoch & \TODO{XX} \\
+Total Parameters & \TODO{X,XXX,XXX} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Confusion Matrix}
+Figure~\ref{fig:confusion_matrix} shows the confusion matrix on the test set.
+
+\begin{figure}[H]
+\centering
+\TODO{Insert confusion_matrix.png here}
+% \includegraphics[width=0.9\textwidth]{evaluation/confusion_matrix.png}
+\caption{Confusion Matrix on Test Set}
+\label{fig:confusion_matrix}
+\end{figure}
+
+\textbf{Observations from Confusion Matrix:}
+\begin{itemize}
+    \item High diagonal values indicate correct classification for most classes
+    \item Notable confusion exists between Highway and River classes
+    \item AnnualCrop and PermanentCrop show some mutual misclassification
+    \item \TODO{Add more observations}
+\end{itemize}
+
+\subsection{Per-Class Accuracy}
+
+\begin{table}[H]
+\centering
+\caption{Per-Class Classification Accuracy}
+\begin{tabular}{cc}
+\toprule
+\textbf{Class} & \textbf{Accuracy} \\
+\midrule
+AnnualCrop & \TODO{XX.XX\%} \\
+Forest & \TODO{XX.XX\%} \\
+HerbaceousVegetation & \TODO{XX.XX\%} \\
+Highway & \TODO{XX.XX\%} \\
+Industrial & \TODO{XX.XX\%} \\
+Pasture & \TODO{XX.XX\%} \\
+PermanentCrop & \TODO{XX.XX\%} \\
+Residential & \TODO{XX.XX\%} \\
+River & \TODO{XX.XX\%} \\
+SeaLake & \TODO{XX.XX\%} \\
+\midrule
+\textbf{Average} & \TODO{XX.XX\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Weight Visualization}
+%==============================================================================
+
+\subsection{First Layer Weight Visualization}
+Figure~\ref{fig:weights} visualizes a subset of first hidden layer weights reshaped to $64 \times 64 \times 3$ image format.
+
+\begin{figure}[H]
+\centering
+\TODO{Insert first_layer_weights.png here}
+% \includegraphics[width=0.9\textwidth]{figures/first_layer_weights.png}
+\caption{First Hidden Layer Weight Visualization}
+\label{fig:weights}
+\end{figure}
+
+\subsection{Spatial Pattern Analysis}
+From the weight visualization, the following patterns can be observed:
+
+\begin{itemize}
+    \item \textbf{Color Preferences}: Some weights show distinct color biases (e.g., blue-ish or green-ish patterns), which may correspond to recognizing specific land cover types.
+
+    \item \textbf{Texture Features}: Certain weights display stripe-like or block-like spatial patterns, potentially corresponding to directional features such as highways and rivers.
+
+    \item \textbf{Edge Detection}: Some weights exhibit center-surround contrast patterns, similar to edge detectors in the visual cortex.
+
+    \item \textbf{Color Channel Distribution}: The RGB channel weights are unevenly distributed, indicating the network has learned sensitivity to different color channels.
+\end{itemize}
+
+\textbf{Class-Specific Observations:}
+\begin{itemize}
+    \item \textbf{Forest-related weights}: Tend to show high response in the green channel, corresponding to vegetation
+    \item \textbf{River-related weights}: Show higher blue channel weights with linear spatial distribution
+    \item \textbf{Industrial-related weights}: May display grayish tones corresponding to concrete and building materials
+    \item \TODO{Add more observations from your visualization}
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\TODO{Insert weight_patterns.png here}
+% \includegraphics[width=0.9\textwidth]{figures/weight_patterns.png}
+\caption{Weight Pattern Analysis}
+\label{fig:weight_patterns}
+\end{figure}
+
+%==============================================================================
+\section{Error Analysis}
+%==============================================================================
+
+\subsection{Common Error Types}
+Misclassified samples from the test set are analyzed below:
+
+\begin{figure}[H]
+\centering
+\TODO{Insert error analysis figures here}
+% \includegraphics[width=0.9\textwidth]{evaluation/error_analysis/error_Highway_to_River.png}
+\caption{Highway Misclassified as River}
+\label{fig:error_highway}
+\end{figure}
+
+\subsection{Error Cause Analysis}
+
+\subsubsection{Highway $\rightarrow$ River Confusion}
+\begin{itemize}
+    \item \textbf{Visual Similarity}: Both highways and rivers appear as elongated linear structures in satellite imagery
+    \item \textbf{Color Confusion}: Some highways have dark asphalt surfaces that appear similar to water
+    \item \textbf{Loss of Spatial Context}: The MLP flattens images, losing spatial structural information that could help distinguish between these classes
+\end{itemize}
+
+\subsubsection{AnnualCrop $\rightarrow$ PermanentCrop Confusion}
+\begin{itemize}
+    \item \textbf{Similar Texture}: Both crop types exhibit similar regular patterns in satellite images
+    \item \textbf{Seasonal Variation}: Images captured in different seasons may show different appearances
+    \item \textbf{Spectral Overlap}: The spectral signatures of different crop types can be similar
+\end{itemize}
+
+\subsubsection{HerbaceousVegetation $\rightarrow$ Pasture Confusion}
+\begin{itemize}
+    \item \textbf{Vegetation Overlap}: Both classes represent vegetation cover with similar colors and textures
+    \item \textbf{Fuzzy Boundaries}: The class definitions have some inherent overlap
+\end{itemize}
+
+\subsection{Misclassification Statistics}
+
+\begin{table}[H]
+\centering
+\caption{Top Misclassification Pairs}
+\begin{tabular}{cccc}
+\toprule
+\textbf{True Class} & \textbf{Predicted As} & \textbf{Count} & \textbf{Percentage} \\
+\midrule
+\TODO{Highway} & \TODO{River} & \TODO{XX} & \TODO{X.X\%} \\
+\TODO{AnnualCrop} & \TODO{PermanentCrop} & \TODO{XX} & \TODO{X.X\%} \\
+\TODO{HerbaceousVegetation} & \TODO{Pasture} & \TODO{XX} & \TODO{X.X\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Suggestions for Improvement}
+\begin{itemize}
+    \item Use Convolutional Neural Networks (CNN) to preserve spatial structural information
+    \item Apply data augmentation to improve model generalization
+    \item Incorporate attention mechanisms to enhance discriminative feature learning
+    \item Consider multi-scale feature extraction for better representation of different land cover types
+\end{itemize}
+
+%==============================================================================
+\section{Conclusion}
+%==============================================================================
+
+This assignment successfully implements a three-layer fully connected neural network classifier from scratch with the following achievements:
+
+\begin{enumerate}
+    \item Implemented automatic differentiation and backpropagation using only NumPy for matrix operations
+    \item Designed modular code structure including data loading, model definition, training, and evaluation modules
+    \item Supported multiple activation functions (ReLU, Sigmoid, Tanh) with seamless switching
+    \item Implemented SGD optimizer with momentum, learning rate decay strategies, cross-entropy loss, and L2 regularization
+    \item Conducted hyperparameter optimization through grid search
+    \item Achieved \TODO{XX.XX\%} test accuracy on the EuroSAT dataset
+    \item Analyzed learned features through weight visualization
+    \item Performed detailed error analysis to understand model limitations
+\end{enumerate}
+
+\textbf{Key Findings:}
+\begin{itemize}
+    \item The three-layer MLP can achieve reasonable performance on satellite image classification
+    \item The model shows confusion between visually similar classes (e.g., Highway vs. River)
+    \item Weight visualization reveals the network learns meaningful color and texture patterns
+    \item Spatial information loss due to image flattening limits the model's discriminative ability
+\end{itemize}
+
+\textbf{Future Work:}
+\begin{itemize}
+    \item Implement CNN architectures to better capture spatial patterns
+    \item Explore advanced optimization techniques (Adam, learning rate schedulers)
+    \item Apply transfer learning from pre-trained models
+    \item Investigate multi-modal fusion with additional satellite data
+\end{itemize}
+
+%==============================================================================
+\section{Code and Resources}
+%==============================================================================
+
+\begin{itemize}
+    \item \textbf{GitHub Repository}: \TODO{https://github.com/yourusername/hw1-mlp-classifier}
+    \item \textbf{Model Weights}: \TODO{https://drive.google.com/xxx}
+    \item \textbf{Last Updated}: \TODO{April 2026}
+\end{itemize}
+
+\subsection{Code Structure}
+\begin{verbatim}
+hw1/
+├── src/                        # Source code
+│   ├── data_loader.py          # Data loading and preprocessing
+│   ├── activations.py          # Activation functions
+│   ├── losses.py               # Loss functions
+│   ├── optimizers.py           # Optimizers and LR schedulers
+│   ├── model.py                # Three-layer MLP model
+│   ├── trainer.py              # Training loop
+│   ├── hyperparameter_search.py # Hyperparameter search
+│   ├── evaluation.py           # Evaluation metrics
+│   ├── visualization.py        # Visualization utilities
+│   ├── train.py                # Main training script
+│   ├── test.py                 # Testing script
+│   └── predict.py              # Prediction script
+├── scripts/                    # Shell scripts
+├── report/                     # LaTeX report
+└── logs/                       # Training logs
+\end{verbatim}
+
+\subsection{Running the Code}
+\begin{verbatim}
+# Training
+cd hw1/src
+python train.py --data_dir ../EuroSAT_RGB --epochs 100
+
+# Testing
+python test.py --exp_dir ./output/experiment_xxx
+
+# Prediction
+python predict.py --model_path ./output/experiment_xxx/checkpoints/best_model.pkl \
+                  --image_path ../EuroSAT_RGB/Forest/Forest_1.jpg
+\end{verbatim}
+
+\end{document}

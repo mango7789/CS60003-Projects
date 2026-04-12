@@ -1,0 +1,8 @@
+.claude/
+EuroSAT_RGB/
+logs/
+
+.DS_Store
+*.pyc
+__pycache__/
+*.pdf
