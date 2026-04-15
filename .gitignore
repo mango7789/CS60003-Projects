@@ -1,9 +1,11 @@
 .claude/
 EuroSAT_RGB/
 logs/
-output
+# output
+preprocessed_data/
 
 .DS_Store
 *.pyc
 __pycache__/
 *.pdf
+*.pkl

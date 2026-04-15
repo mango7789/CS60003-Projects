@@ -1,0 +1,40 @@
+{
+  "data_dir": "../EuroSAT_RGB",
+  "output_dir": "../output",
+  "exp_name": null,
+  "seed": 42,
+  "hidden_size": 256,
+  "activation": "relu",
+  "epochs": 80,
+  "batch_size": 64,
+  "learning_rate": 0.1,
+  "momentum": 0.9,
+  "weight_decay": 0.0001,
+  "grad_clip": 5.0,
+  "lr_decay_type": "step",
+  "lr_decay_rate": 0.5,
+  "lr_decay_steps": 20,
+  "search_hyperparams": false,
+  "search_type": "grid",
+  "search_epochs": 30,
+  "n_trials": 20,
+  "hidden_sizes": [
+    128,
+    256,
+    512
+  ],
+  "learning_rates": [
+    0.001,
+    0.01,
+    0.1
+  ],
+  "activations": [
+    "relu",
+    "tanh"
+  ],
+  "weight_decays": [
+    0.0001,
+    0.001,
+    0.01
+  ]
+}

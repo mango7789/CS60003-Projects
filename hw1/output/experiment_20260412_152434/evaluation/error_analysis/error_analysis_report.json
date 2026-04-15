@@ -1,0 +1,62 @@
+[
+  {
+    "true_label": "Highway",
+    "pred_label": "Residential",
+    "count": 88,
+    "indices": [
+      26,
+      46,
+      75,
+      93,
+      110
+    ]
+  },
+  {
+    "true_label": "HerbaceousVegetation",
+    "pred_label": "Residential",
+    "count": 84,
+    "indices": [
+      33,
+      53,
+      92,
+      115,
+      138
+    ]
+  },
+  {
+    "true_label": "PermanentCrop",
+    "pred_label": "HerbaceousVegetation",
+    "count": 82,
+    "indices": [
+      36,
+      64,
+      145,
+      155,
+      280
+    ]
+  },
+  {
+    "true_label": "Residential",
+    "pred_label": "HerbaceousVegetation",
+    "count": 70,
+    "indices": [
+      32,
+      89,
+      215,
+      220,
+      223
+    ]
+  },
+  {
+    "true_label": "AnnualCrop",
+    "pred_label": "PermanentCrop",
+    "count": 67,
+    "indices": [
+      61,
+      114,
+      221,
+      246,
+      306
+    ]
+  }
+]

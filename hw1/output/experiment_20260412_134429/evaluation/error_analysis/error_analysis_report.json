@@ -1,0 +1,62 @@
+[
+  {
+    "true_label": "Residential",
+    "pred_label": "HerbaceousVegetation",
+    "count": 450,
+    "indices": [
+      0,
+      19,
+      32,
+      57,
+      62
+    ]
+  },
+  {
+    "true_label": "SeaLake",
+    "pred_label": "HerbaceousVegetation",
+    "count": 450,
+    "indices": [
+      1,
+      3,
+      5,
+      8,
+      11
+    ]
+  },
+  {
+    "true_label": "Forest",
+    "pred_label": "HerbaceousVegetation",
+    "count": 450,
+    "indices": [
+      7,
+      18,
+      21,
+      25,
+      41
+    ]
+  },
+  {
+    "true_label": "AnnualCrop",
+    "pred_label": "HerbaceousVegetation",
+    "count": 450,
+    "indices": [
+      9,
+      10,
+      12,
+      16,
+      22
+    ]
+  },
+  {
+    "true_label": "Highway",
+    "pred_label": "HerbaceousVegetation",
+    "count": 375,
+    "indices": [
+      6,
+      26,
+      46,
+      75,
+      76
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "test_accuracy": 0.6261728395061729,
+  "best_val_accuracy": 0.631695877561096,
+  "best_epoch": 71,
+  "hyperparameters": {
+    "hidden_size": 256,
+    "learning_rate": 0.01,
+    "activation": "relu",
+    "weight_decay": 0.01,
+    "momentum": 0.9
+  }
+}
