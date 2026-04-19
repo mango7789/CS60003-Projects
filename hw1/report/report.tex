@@ -3,24 +3,9 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{algorithm}
-\usepackage{algorithmic}
-\usepackage{multirow}
-\usepackage{subcaption}
 \usepackage{xcolor}
-\usepackage{listings}
-
-\lstset{
-    language=Python,
-    basicstyle=\ttfamily\scriptsize,
-    keywordstyle=\color{blue},
-    commentstyle=\color{gray},
-    stringstyle=\color{red},
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    frame=single,
-    breaklines=true,
-    captionpos=b
+\AtBeginDocument{%
+  \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}%
 }
 
 \settopmatter{printacmref=false}
@@ -29,20 +14,14 @@
 
 \begin{document}
 
-\title{Building a Three-Layer Neural Network Classifier from Scratch: A Comprehensive Study on EuroSAT Land Cover Classification}
+\title{Building a Three-Layer Neural Network Classifier from Scratch: An Empirical Study on EuroSAT Land Cover Classification}
 
-\author{[Your Name]}
-\affiliation{%
-  \institution{[Your University]}
-  \city{[City]}
-  \country{China}
-}
-\email{[Your Email]}
+\author{Xiang Zheng, 25210980171}
 
-\renewcommand{\shortauthors}{[Your Name]}
+\renewcommand{\shortauthors}{Xiang Zheng}
 
 \begin{abstract}
-This paper presents a comprehensive implementation of a three-layer fully connected neural network (MLP) for land cover classification on the EuroSAT satellite imagery dataset, developed entirely from scratch using only NumPy for numerical computations. We systematically investigate the theoretical foundations of backpropagation, gradient descent optimization, and regularization techniques, providing detailed mathematical derivations and algorithmic implementations. Through extensive empirical studies, we examine the impact of activation functions, network architecture, learning rate scheduling, and regularization strength on classification performance. Our experiments reveal that careful hyperparameter tuning yields significant performance improvements, with the optimal configuration achieving \textbf{66.40\%} test accuracy. Furthermore, we conduct in-depth analyses of learned weight patterns through visualization, revealing that the network spontaneously develops Gabor-like edge detectors and color-sensitive filters reminiscent of early visual cortex representations. Error analysis identifies systematic confusions between visually similar land cover classes, providing insights into the limitations of fully connected architectures for spatial pattern recognition. This work serves as both an educational resource for understanding neural network fundamentals and an empirical study on the applicability of MLPs to remote sensing image classification.
+This paper presents a from-scratch implementation of a three-layer fully connected neural network (MLP) for land cover classification on the EuroSAT satellite imagery dataset, using only NumPy for numerical computations. We investigate the foundations of backpropagation, gradient descent optimization, and regularization techniques, providing mathematical derivations and algorithmic implementations. Through empirical studies, we examine the impact of activation functions, network architecture, learning rate scheduling, and regularization strength on classification performance. Our experiments show that careful hyperparameter tuning yields notable performance improvements, with the best configuration achieving \textbf{66.40\%} test accuracy. We also visualize learned first-layer weight patterns, finding that the network develops color-channel-biased and coarse spatial filters that capture global intensity distributions rather than localized features. Error analysis identifies systematic confusions between visually similar land cover classes, illustrating the limitations of fully connected architectures for spatial pattern recognition. This work serves as both an educational resource for understanding neural network fundamentals and an empirical study on the applicability of MLPs to remote sensing image classification.
 \end{abstract}
 
 \keywords{neural network, backpropagation, land cover classification, EuroSAT, hyperparameter optimization, weight visualization}
@@ -51,35 +30,30 @@ This paper presents a comprehensive implementation of a three-layer fully connec
 
 \section{Introduction}
 
+\begin{itemize}
+    \item \textbf{Code Repository:} \href{https://github.com/mango7789/CS60003-Projects/tree/main/hw1}{github.com/mango7789/CS60003-Projects}
+    \item \textbf{Best Model Weights:} \href{https://drive.google.com/file/d/1EZh06x3Ji_XwPE-PbErBwbGDASzOLXKD/view?usp=sharing}{Google Drive}
+\end{itemize}
+
 \subsection{Motivation and Objectives}
 
-Deep learning has revolutionized computer vision and remote sensing applications, with sophisticated architectures achieving remarkable performance on complex classification tasks. However, the widespread adoption of high-level frameworks such as PyTorch and TensorFlow has created a gap between practitioners and the fundamental mathematical principles underlying neural networks. This assignment addresses this gap by implementing a complete neural network pipeline from first principles, enabling a deeper understanding of the computational mechanisms that drive learning in artificial neural systems.
+Deep learning has advanced computer vision and remote sensing applications, with modern architectures achieving strong performance on complex classification tasks. However, the widespread adoption of high-level frameworks such as PyTorch and TensorFlow has created a gap between practitioners and the fundamental mathematical principles underlying neural networks. This work addresses this gap by implementing a complete neural network pipeline from first principles, enabling a deeper understanding of the computational mechanisms that drive learning in artificial neural systems.
 
 The primary objectives of this work are threefold: (1) to develop a rigorous implementation of forward propagation, backpropagation, and optimization algorithms using only basic matrix operations; (2) to systematically evaluate the impact of various hyperparameters on model performance through controlled experiments; and (3) to analyze the learned representations through weight visualization and error analysis, providing insights into what features the network learns to discriminate among land cover types.
 
 \subsection{Problem Formulation}
 
-We address the problem of land cover classification using satellite imagery from the EuroSAT dataset \cite{helber2019eurosat}. Given an input image $\mathbf{x} \in \mathbb{R}^{H \times W \times C}$ where $H=W=64$ and $C=3$, the objective is to learn a mapping $f_\theta: \mathbb{R}^{12288} \rightarrow \{0, 1, \ldots, 9\}$ that assigns each image to one of ten land cover categories. The function $f_\theta$ is parameterized by a three-layer fully connected neural network with parameters $\theta = \{\mathbf{W}^{(l)}, \mathbf{b}^{(l)}\}_{l=1}^{3}$.
+We address the problem of land cover classification using satellite imagery from the EuroSAT dataset. Given an input image $\mathbf{x} \in \mathbb{R}^{H \times W \times C}$ where $H=W=64$ and $C=3$, the objective is to learn a mapping $f_\theta: \mathbb{R}^{12288} \rightarrow \{0, 1, \ldots, 9\}$ that assigns each image to one of ten land cover categories. The function $f_\theta$ is parameterized by a three-layer fully connected neural network with parameters $\theta = \{\mathbf{W}^{(l)}, \mathbf{b}^{(l)}\}_{l=1}^{3}$.
 
 \subsection{Contributions}
 
 The main contributions of this work include:
 \begin{itemize}
-    \item A complete, modular implementation of a three-layer MLP with automatic differentiation, supporting multiple activation functions, optimization strategies, and regularization techniques.
-    \item A comprehensive empirical study examining four critical hyperparameter dimensions: activation function selection, hidden layer capacity, learning rate scheduling, and regularization strength.
-    \item Detailed visualization and analysis of learned weight patterns, revealing emergent feature detectors that resemble classical computer vision filters.
-    \item Systematic error analysis identifying failure modes and providing insights into the limitations of spatial-agnostic architectures.
+    \item A complete, modular implementation of a three-layer MLP with manual backpropagation, supporting multiple activation functions, optimization strategies, and regularization techniques.
+    \item An empirical study examining four hyperparameter dimensions: activation function selection, hidden layer capacity, learning rate scheduling, and regularization strength.
+    \item Visualization and analysis of learned weight patterns, revealing coarse color and spatial patterns captured by the network.
+    \item Error analysis identifying failure modes and providing insights into the limitations of spatial-agnostic architectures.
 \end{itemize}
-
-\section{Related Work}
-
-\subsection{Neural Networks in Remote Sensing}
-
-The application of neural networks to remote sensing image classification has a rich history dating back to the early 1990s \cite{bischof1992nn}. Early works employed shallow architectures with handcrafted features, while modern approaches leverage deep convolutional neural networks (CNNs) that learn hierarchical representations directly from raw pixel data \cite{huang2018deep}. The EuroSAT benchmark dataset, introduced by Helber et al. \cite{helber2019eurosat}, has become a standard evaluation platform for land cover classification methods.
-
-\subsection{From-Scratch Implementations}
-
-Educational implementations of neural networks from scratch serve an important pedagogical purpose, allowing students to develop intuition about gradient flow, optimization dynamics, and the interplay between architecture and performance. Notable resources include the work of Karpathy \cite{karpathy2016cs231n} and Nielsen \cite{nielsen2015neural}, which provide detailed explanations of backpropagation and its implementation. Our implementation extends these foundations with modern techniques such as gradient clipping, learning rate scheduling, and comprehensive visualization tools.
 
 \section{Dataset and Preprocessing}
 
@@ -87,7 +61,7 @@ Educational implementations of neural networks from scratch serve an important p
 
 The EuroSAT dataset comprises 27,000 Sentinel-2 satellite images covering 10 distinct land cover categories. Each image is a $64 \times 64$ pixel RGB patch extracted from larger satellite scenes, providing a diverse representation of European landscapes. Table~\ref{tab:classes} summarizes the class distribution.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{EuroSAT Dataset Class Distribution}
 \label{tab:classes}
 \centering
@@ -207,9 +181,11 @@ All experiments follow a controlled protocol: (1) fix random seed to 42 for repr
 
 \textbf{Protocol}: Hidden Size=256, Learning Rate=0.01, Weight Decay=0.0001.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Activation Function Comparison}
 \label{tab:activation}
+\centering
+\small
 \begin{tabular}{lccc}
 \toprule
 Activation & Val Acc & Test Acc & Best Epoch \\
@@ -223,11 +199,11 @@ Tanh & 52.16\% & 50.79\% & 75 \\
 
 \textbf{Analysis}: The experimental results reveal several important insights about activation function selection for satellite image classification.
 
-\textit{Why Sigmoid outperforms ReLU}: Although ReLU is widely preferred in modern deep learning due to its computational efficiency and sparse activation properties, Sigmoid achieves the best performance (62.81\%) on this task. This can be explained by several factors: (1) The input pixel values are normalized to $[0, 1]$, which naturally matches Sigmoid's output range, creating a consistent signal distribution across layers; (2) Sigmoid's smooth, bounded gradients prevent extreme activation values that can destabilize training in high-dimensional input spaces ($D=12,288$); (3) The satellite images contain smooth color transitions and textures, which benefit from Sigmoid's gradual nonlinearity rather than ReLU's hard threshold at zero.
+\textit{Why Sigmoid outperforms ReLU}: Although ReLU is widely preferred in modern deep learning for its computational efficiency and sparse activations, Sigmoid achieves the best performance (62.81\%) on this task. Several factors may explain this: (1) the input pixel values are normalized to $[0, 1]$, which naturally matches Sigmoid's output range, creating a consistent signal distribution across layers; (2) Sigmoid's smooth, bounded gradients prevent extreme activation values that can destabilize training in high-dimensional input spaces ($D=12{,}288$); (3) the satellite images contain smooth color transitions and textures, which may benefit from Sigmoid's gradual nonlinearity rather than ReLU's hard threshold at zero.
 
-\textit{Why Tanh performs poorly}: Tanh achieves only 50.79\% accuracy, significantly worse than both alternatives. The primary reason is the mismatch between Tanh's output range $(-1, 1)$ and the subsequent layer's expectations. When using He initialization (designed for ReLU), the weights expect predominantly positive activations, but Tanh produces both positive and negative values with zero mean. This distribution mismatch causes inefficient signal propagation and slower convergence. Additionally, Tanh's gradients vanish more severely for inputs with large magnitude, which can occur frequently in the high-dimensional first layer.
+\textit{Why Tanh performs poorly}: Tanh achieves only 50.79\% accuracy, notably worse than both alternatives. A likely cause is the interaction between Tanh's zero-centered output range $(-1, 1)$ and the downstream layers: the alternating positive and negative activations can lead to less stable gradient flow in this shallow network with high-dimensional input. Additionally, Tanh's gradients vanish more severely for inputs with large magnitude, which can occur frequently in the high-dimensional first layer ($D=12{,}288$), slowing convergence within the 80-epoch budget.
 
-\textit{Practical implications}: These results demonstrate that activation function selection should be empirically validated for each specific task rather than relying on general recommendations. The optimal choice depends on input data characteristics, network architecture, and initialization strategy.
+\textit{Practical implications}: These results suggest that activation function selection should be empirically validated for each specific task rather than relying on general recommendations. The suitable choice depends on input data characteristics, network architecture, and initialization strategy.
 
 \subsection{Experiment 2: Network Capacity Analysis}
 
@@ -235,9 +211,11 @@ Tanh & 52.16\% & 50.79\% & 75 \\
 
 \textbf{Protocol}: Activation=ReLU, Learning Rate=0.01, Weight Decay=0.0001.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Hidden Layer Size Comparison}
 \label{tab:hidden}
+\centering
+\small
 \begin{tabular}{cccc}
 \toprule
 Hidden Size & Val Acc & Test Acc & Parameters \\
@@ -256,7 +234,7 @@ Hidden Size & Val Acc & Test Acc & Parameters \\
 
 \textit{Diminishing returns}: The improvement from 256 to 512 dimensions is modest (60.62\% $\rightarrow$ 62.44\%), while the parameter count doubles from 6.4M to 12.8M. This suggests we are approaching the point of diminishing returns, where additional capacity provides marginal benefits but increases computational cost and risk of overfitting.
 
-\textit{No overfitting observed}: Critically, the gap between validation and test accuracy remains small across all configurations (typically $<1\%$), indicating that weight decay regularization effectively prevents overfitting even at high capacity. This is somewhat surprising given the high parameter-to-sample ratio (12.8M parameters for 18,900 training samples), and suggests the problem has inherent complexity that requires high-capacity models.
+\textit{No overfitting observed}: The gap between validation and test accuracy remains small across all configurations (typically $<1\%$), indicating that weight decay regularization effectively prevents overfitting even at high capacity. Despite the high parameter-to-sample ratio (12.8M parameters for 18,900 training samples), the model does not overfit, which is consistent with the task's inherent complexity.
 
 \textit{Practical recommendation}: For this task, hidden size 256 offers a good balance between performance (60.62\%) and efficiency (6.4M parameters). The additional 2\% gain from 512 dimensions may not justify the doubled computational cost in resource-constrained scenarios.
 
@@ -266,9 +244,11 @@ Hidden Size & Val Acc & Test Acc & Parameters \\
 
 \textbf{Protocol}: Activation=ReLU, Hidden Size=256, Weight Decay=0.0001.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Learning Rate Comparison}
 \label{tab:lr}
+\centering
+\small
 \begin{tabular}{cccc}
 \toprule
 LR & Val Acc & Test Acc & Best Epoch \\
@@ -282,11 +262,11 @@ LR & Val Acc & Test Acc & Best Epoch \\
 \end{tabular}
 \end{table}
 
-\textbf{Analysis}: The learning rate experiments reveal a dramatic sensitivity of model performance to this critical hyperparameter, with both optimization failure and suboptimal convergence observed.
+\textbf{Analysis}: The learning rate experiments reveal a strong sensitivity of model performance to this hyperparameter, with both optimization failure and suboptimal convergence observed.
 
-\textit{Optimal learning rate (0.005)}: This configuration achieves the best test accuracy of 66.40\%, representing a 5.8\% improvement over the baseline (0.01). The reason is that a smaller learning rate allows more careful navigation of the loss landscape, which is particularly important for high-dimensional input spaces ($D=12,288$) where gradients can have complex structures. The linear learning rate decay further refines the optimization in later epochs, enabling the model to converge to a better local minimum.
+\textit{Optimal learning rate (0.005)}: This configuration achieves the best test accuracy of 66.40\%, a 5.8 percentage-point improvement over the baseline (0.01). A moderately small learning rate allows more careful navigation of the loss landscape, which is important for high-dimensional input spaces ($D=12,288$) where gradients can have complex structure. The linear learning rate decay further refines the optimization in later epochs, helping the model settle into a better local minimum.
 
-\textit{Catastrophic failure at high rates (0.05, 0.1)}: At learning rates above 0.01, the model completely fails to learn, achieving only 11.11\% accuracy (equivalent to random guessing for 9 classes, since 1/9 $\approx$ 11.1\%). This occurs because large learning rates cause the optimizer to overshoot minima and enter unstable regions of the loss landscape. Even with gradient clipping (threshold 5.0), the large step sizes lead to oscillations and divergence. The model essentially ``forgets'' any useful patterns and becomes trapped in a degenerate solution.
+\textit{Failure at high rates (0.05, 0.1)}: At learning rates above 0.01, the model fails to learn, achieving only 11.11\% accuracy (near chance level for 10 classes). Large learning rates cause the optimizer to overshoot minima and enter unstable regions of the loss landscape. Even with gradient clipping (threshold 5.0), the large step sizes lead to oscillations and divergence, and the model converges to a degenerate solution.
 
 \textit{Suboptimal convergence at low rate (0.001)}: While achieving competitive accuracy (61.63\%), the lower learning rate converges more slowly. This rate is too conservative, making small steps that require many more epochs to reach optimal performance. The model may still be improving at epoch 80, suggesting that longer training could close the gap with the optimal configuration.
 
@@ -298,9 +278,11 @@ LR & Val Acc & Test Acc & Best Epoch \\
 
 \textbf{Protocol}: Activation=ReLU, Hidden Size=256, Learning Rate=0.01.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Weight Decay Comparison}
 \label{tab:wd}
+\centering
+\small
 \begin{tabular}{ccc}
 \toprule
 Weight Decay & Val Acc & Test Acc \\
@@ -314,23 +296,25 @@ $10^{-3}$ & 62.40\% & 61.43\% \\
 \end{tabular}
 \end{table}
 
-\textbf{Analysis}: The weight decay experiments demonstrate the role of L2 regularization in improving generalization, with counter-intuitive findings about optimal regularization strength.
+\textbf{Analysis}: The weight decay experiments illustrate the role of L2 regularization in improving generalization for this high-dimensional setting.
 
-\textit{Stronger regularization improves performance}: Test accuracy increases monotonically with weight decay strength, from 60.89\% (no regularization) to 62.62\% ($\lambda=0.01$). This 1.7\% improvement is substantial and indicates that the model benefits significantly from constraints on weight magnitudes. Strong regularization prevents individual features from becoming too influential, encouraging the network to learn more robust, distributed representations.
+\textit{Stronger regularization improves performance}: Test accuracy increases monotonically with weight decay strength, from 60.89\% (no regularization) to 62.62\% ($\lambda=0.01$). This 1.7\% improvement indicates that the model benefits from constraints on weight magnitudes. Stronger regularization prevents individual features from becoming overly influential, encouraging the network to learn more distributed representations.
 
-\textit{Why strong regularization helps}: At first glance, one might expect strong regularization ($\lambda=0.01$) to cause underfitting by overly constraining the model. However, for this task, the benefits of regularization outweigh the capacity limitations. The reasons are: (1) The high-dimensional input (12,288 features) creates many opportunities for the model to learn spurious correlations that do not generalize; (2) L2 regularization encourages the network to use all features moderately rather than relying heavily on a few, which is appropriate for images where land cover types are distinguished by combinations of many pixels; (3) Regularization acts as an implicit ensemble method, averaging over multiple weight configurations.
+\textit{Why strong regularization helps}: Although strong regularization ($\lambda=0.01$) might be expected to cause underfitting, the benefits outweigh the capacity reduction on this task. The high-dimensional input (12,288 features) creates many opportunities for the model to fit spurious correlations that do not generalize. L2 regularization encourages the network to distribute weight across many features rather than relying heavily on a few, which suits image data where land cover types are distinguished by combinations of many pixels.
 
-\textit{No underfitting observed}: Even at $\lambda=0.01$, the model shows no signs of underfitting---training accuracy remains high (approximately 75\% at epoch 80), indicating the model still has sufficient capacity. This suggests that stronger regularization could potentially yield further improvements.
+\textit{No underfitting observed}: Even at $\lambda=0.01$, the model shows no signs of underfitting---training accuracy remains high (approximately 75\% at epoch 80), indicating the model retains sufficient capacity.
 
 \textit{Practical implication}: For high-dimensional input problems like image classification with fully connected networks, stronger regularization than typically recommended may be beneficial. The optimal weight decay depends on the ratio of parameters to training samples and the inherent noise in the data.
 
 \subsection{Optimal Configuration}
 
-Synthesizing results from all experiments, we identify the optimal hyperparameter configuration:
+Since hyperparameters interact with each other, the best overall configuration is not necessarily the combination of individually optimal values from each experiment. For example, Experiment~1 found Sigmoid to be the best activation in isolation, and Experiment~4 found $\lambda=0.01$ to yield the highest accuracy when other parameters were fixed. However, these results were obtained under different baseline settings (e.g., learning rate 0.01). After joint tuning with the improved learning rate of 0.005, ReLU with moderate regularization ($\lambda=10^{-4}$) achieves the best overall performance, as the faster learning rate alters the loss landscape traversal and shifts the optimal balance between activation dynamics and regularization strength. Table~\ref{tab:optimal} summarizes the final configuration.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Optimal Hyperparameter Configuration}
 \label{tab:optimal}
+\centering
+\small
 \begin{tabular}{cc}
 \toprule
 Hyperparameter & Value \\
@@ -351,78 +335,54 @@ This configuration achieves \textbf{66.40\%} test accuracy and \textbf{65.93\%} 
 
 \section{Results and Analysis}
 
+The following analysis is based on the optimal configuration identified in Table~\ref{tab:optimal}.
+
 \subsection{Training Dynamics}
 
-Figure~\ref{fig:curves} presents the training and validation curves over 80 epochs, revealing several important characteristics of the optimization process.
+Figure~\ref{fig:curves} illustrates the training dynamics. Several observations emerge: (1) training loss decreases monotonically while training accuracy increases, indicating stable optimization; (2) validation metrics exhibit oscillations but follow an overall improving trend, reflecting the stochastic nature of mini-batch evaluation on limited validation data; (3) learning rate decay produces noticeable loss reductions at corresponding epochs, confirming the benefit of the scheduled decay strategy; (4) a visible gap persists between training and validation accuracy (approximately 75\% vs.\ 66\%), indicating that the model fits the training data substantially better than it generalizes. This gap suggests moderate overfitting despite L2 regularization, and further regularization or data augmentation could help narrow it.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/training_curves.png}
-\caption{Training and validation loss/accuracy curves over 80 epochs. The learning rate decays linearly, with noticeable performance improvements around epochs 20, 40, and 60.}
+\caption{Training and validation loss/accuracy curves. Learning rate decay events are marked by performance improvements.}
 \label{fig:curves}
 \end{figure}
 
-\textit{Loss convergence}: The training loss decreases smoothly from approximately 1.84 (epoch 1) to 0.74 (epoch 80), indicating successful gradient-based optimization. The validation loss follows a similar trend but exhibits more oscillation, which is expected as the model updates are optimized for the training set rather than the validation set.
-
-\textit{Accuracy improvement}: Training accuracy rises from 30\% (near random for 10 classes) to 75.6\%, demonstrating substantial learning. Validation accuracy peaks at 65.9\% around epoch 77, with the gap between training and validation accuracy (approximately 10\%) indicating mild but acceptable overfitting.
-
-\textit{Learning rate decay effects}: The linear learning rate decay produces visible ``steps'' in the loss curve around epochs 20, 40, and 60. Each decay event allows the optimizer to settle into a sharper local minimum, resulting in incremental accuracy improvements. This validates the importance of learning rate scheduling for achieving optimal performance.
-
-\textit{No divergence}: The curves show no signs of divergence or oscillation instability, confirming that gradient clipping (threshold 5.0) effectively stabilizes training despite the high input dimensionality.
-
 \subsection{Confusion Analysis}
 
-Figure~\ref{fig:cm} presents the confusion matrix on the 4,050 test samples, revealing both successful classifications and systematic error patterns.
+Figure~\ref{fig:cm} presents the confusion matrix, revealing structured error patterns rather than uniform noise. Classes with distinctive color signatures---Forest (dense green) and SeaLake (large blue regions)---achieve the highest per-class accuracy, as their global color statistics are easily separable even without spatial structure. In contrast, classes that share similar spectral profiles but differ primarily in spatial layout (e.g., Highway vs.\ River, PermanentCrop vs.\ HerbaceousVegetation) exhibit substantial mutual confusion. This asymmetry confirms that the MLP's learned representations are largely color-based: the model succeeds when color alone is discriminative and fails when spatial context is required.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/confusion_matrix.png}
-\caption{Confusion matrix on test set. Diagonal elements represent correct classifications; off-diagonal elements reveal systematic confusions.}
+\caption{Confusion matrix on test set. Off-diagonal elements reveal systematic confusions between visually similar classes.}
 \label{fig:cm}
 \end{figure}
 
-\textit{High-accuracy classes}: The model performs best on classes with distinctive visual signatures: \textbf{SeaLake} achieves high accuracy because water bodies have uniform color and texture; \textbf{Forest} performs well due to its characteristic green color and irregular canopy patterns; \textbf{Industrial} is recognizable by geometric structures and gray tones.
-
-\textit{Systematic confusions}: The matrix reveals several prominent off-diagonal patterns:
-\begin{itemize}
-    \item \textbf{Highway $\leftrightarrow$ River}: Both appear as elongated linear structures in satellite imagery.
-    \item \textbf{PermanentCrop $\rightarrow$ HerbaceousVegetation}: Both contain vegetation with similar RGB signatures.
-    \item \textbf{Residential $\rightarrow$ HerbaceousVegetation}: Residential areas include gardens and lawns.
-\end{itemize}
-
-\textit{Diagonal dominance}: Despite confusions, diagonal elements significantly exceed off-diagonal values, indicating the model has learned meaningful class-specific features.
-
 \subsection{Weight Visualization}
 
-Figure~\ref{fig:weights} visualizes a subset of first-layer weights reshaped from 12,288-dimensional vectors back to $64 \times 64 \times 3$ image format. This visualization reveals what visual patterns each hidden neuron responds to.
+Figure~\ref{fig:weights} visualizes the first-layer weights reshaped into image dimensions ($64 \times 64 \times 3$). We display the top 16 neurons with the largest weight norms, as they contribute most significantly to the model.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{images/first_layer_weights.png}
-\caption{First layer weight visualization. Each patch represents weights connecting all input pixels to one hidden neuron. The network spontaneously learns edge detectors, color filters, and texture-sensitive patterns.}
+\includegraphics[width=\columnwidth]{images/first_layer_weights_top16.png}
+\caption{Visualization of the top-16 first-layer weights (selected by largest weight norms), reshaped as RGB images.}
 \label{fig:weights}
 \end{figure}
 
-\textit{Gabor-like edge detectors}: Many weights exhibit oriented stripe patterns at various angles (horizontal, vertical, diagonal). These resemble Gabor filters commonly used in texture analysis and edge detection. For satellite imagery, such filters are useful for detecting linear structures like highways, rivers, and field boundaries.
+\textbf{Observations}:
+(1) \textit{Color-channel bias}: Several neurons exhibit strong biases toward specific color channels---green-dominant filters likely respond to vegetation classes (Forest, Pasture), while blue-dominant filters correspond to water bodies (River, SeaLake). This is consistent with the confusion analysis: the model separates classes primarily through global color statistics;
+(2) \textit{Coarse spatial variation}: The weights show smooth, low-frequency spatial patterns across the image, suggesting that neurons encode global intensity gradients (e.g., brighter upper region vs.\ darker lower region) rather than localized structures. This amounts to a crude form of scene-level layout detection;
+(3) \textit{Absence of local detectors}: Unlike convolutional filters that learn oriented edges and texture elements, these fully connected weights show no localized receptive field structure. Each neuron must attend to all 12,288 input dimensions simultaneously, making it difficult to learn position-invariant local features.
 
-\textit{Color-selective filters}: Some weights show strong responses in specific color channels. Green-dominant filters likely respond to vegetation (Forest, Pasture, HerbaceousVegetation), while blue-dominant filters may detect water bodies (SeaLake, River). This color selectivity emerges naturally from the discriminative training objective.
-
-\textit{Center-surround patterns}: Several weights display antagonistic center-surround organization---bright centers with dark surrounds or vice versa. These patterns are similar to receptive fields in the retina and primary visual cortex, serving as local contrast detectors.
-
-\textit{Spatial locality preserved}: Despite the fully connected architecture treating all pixels independently, the learned weights show strong spatial structure. This indicates the network discovers that neighboring pixels are correlated---a key insight that motivates convolutional architectures.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\columnwidth]{images/weight_patterns.png}
-\caption{Statistical analysis of learned weight patterns, showing the distribution of weight values across different hidden neurons.}
-\label{fig:patterns}
-\end{figure}
+\textbf{Discussion}:
+These observations are consistent with the error patterns in the confusion matrix. The network's reliance on global color explains its success on classes with unique spectral signatures (Forest, SeaLake) and its failure on classes distinguished by spatial patterns (Highway vs.\ River). The lack of local feature detectors is a direct consequence of the fully connected architecture, which treats each pixel independently without modeling spatial neighborhoods. This limitation motivates convolutional architectures that build in translation equivariance and local receptive fields.
 
 \subsection{Error Analysis}
 
 Table~\ref{tab:errors} quantifies the most frequent misclassifications. We analyze the top confusion patterns below.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Top Misclassification Patterns}
 \label{tab:errors}
 \centering
@@ -440,32 +400,32 @@ Highway $\rightarrow$ Residential & 45 & 1.11\% \\
 \end{tabular}
 \end{table}
 
-\textbf{Highway $\leftrightarrow$ River Confusion}: The most notable confusion occurs between Highway and River classes (63 and 57 misclassifications respectively). As shown in Figure~\ref{fig:error_highway_river}, both classes exhibit elongated, linear structures in satellite imagery. Dark asphalt surfaces can resemble water under certain lighting conditions, and the flattening operation destroys the spatial context that could disambiguate these patterns.
+\textbf{Highway $\leftrightarrow$ River Confusion}: The most notable bidirectional confusion occurs between Highway and River (63 and 57 misclassifications respectively). As shown in Figures~\ref{fig:error_highway_river} and \ref{fig:error_river_highway}, both classes feature elongated, dark-toned linear structures against lighter backgrounds. Since the MLP operates on flattened pixels, it cannot distinguish a narrow dark stripe (road) from a narrow dark stripe (river)---both produce similar global color histograms dominated by the surrounding landscape. The near-symmetry of the confusion (63 vs.\ 57) further suggests that neither class has a strong unilateral color advantage, confirming that spatial layout, not spectral content, is the key distinguishing factor.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/error_Highway_to_River.png}
 \caption{Examples of Highway misclassified as River. The linear structure and dark color of roads resemble river features.}
 \label{fig:error_highway_river}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/error_River_to_Highway.png}
 \caption{Examples of River misclassified as Highway. Rivers with straight paths can be confused with roads.}
 \label{fig:error_river_highway}
 \end{figure}
 
-\textbf{Vegetation Class Confusions}: PermanentCrop, HerbaceousVegetation, and Residential areas show significant mutual confusion (83 and 81 errors). As illustrated in Figures~\ref{fig:error_crop} and \ref{fig:error_residential}, these classes share similar spectral signatures---all contain green vegetation that appears similar in RGB imagery. Residential areas often include gardens and lawns, while PermanentCrop fields may have herbaceous cover between crop rows.
+\textbf{Vegetation Class Confusions}: PermanentCrop and Residential are both frequently misclassified as HerbaceousVegetation (83 and 81 errors respectively), but the reverse confusions are much rarer. This asymmetry reveals that HerbaceousVegetation acts as an ``attractor'' class: its spectral signature (uniformly green) overlaps with the green component present in both PermanentCrop (crop rows interspersed with grass) and Residential (gardens, lawns, street trees). As illustrated in Figures~\ref{fig:error_crop} and \ref{fig:error_residential}, when the green vegetation fraction dominates the image, the MLP's global color features cannot distinguish the structured spatial arrangements (crop rows, building grids) that define the true class.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/error_PermanentCrop_to_HerbaceousVegetation.png}
 \caption{PermanentCrop misclassified as HerbaceousVegetation. Crop fields and natural grasslands share similar color and texture.}
 \label{fig:error_crop}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=\columnwidth]{images/error_Residential_to_HerbaceousVegetation.png}
 \caption{Residential misclassified as HerbaceousVegetation. Urban areas with gardens and parks exhibit vegetation-like spectral signatures.}
@@ -478,11 +438,11 @@ Highway $\rightarrow$ Residential & 45 & 1.11\% \\
 
 Our experiments yield several insights:
 
-\textbf{Activation Function Selection}: While ReLU dominates modern deep learning, Sigmoid outperforms on this task. This counter-intuitive result suggests that activation function selection should be empirically validated rather than assumed based on general trends.
+\textbf{Activation Function Selection}: While ReLU is the default choice in modern deep learning, Sigmoid outperforms it on this task. This result suggests that activation function selection should be empirically validated rather than assumed based on general practice.
 
 \textbf{Learning Rate Sensitivity}: The sharp performance cliff at high learning rates underscores the importance of careful tuning. Gradient clipping provides robustness but cannot fully compensate for inappropriate learning rates.
 
-\textbf{Emergent Representations}: Despite random initialization and no architectural bias toward spatial processing, the network develops structured feature detectors. This phenomenon echoes findings in visual neuroscience where V1 simple cells emerge through unsupervised learning rules.
+\textbf{Learned Representations}: Despite random initialization and no architectural bias toward spatial processing, the network learns color-channel-biased weights and coarse spatial patterns that reflect global intensity distributions. These representations are limited to low-level color and brightness statistics, consistent with the absence of spatial inductive bias in the architecture.
 
 \textbf{Spatial Information Loss}: The fundamental limitation of fully connected architectures for image data is the destruction of spatial relationships through flattening. This explains the systematic confusions between classes distinguished primarily by spatial patterns (Highway vs. River).
 
@@ -498,6 +458,6 @@ Our experiments yield several insights:
 
 \section{Conclusion}
 
-This paper presented a comprehensive from-scratch implementation of a three-layer neural network for satellite image classification. Through systematic experimentation, we demonstrated that careful hyperparameter tuning yields significant performance improvements, achieving 66.40\% test accuracy on the EuroSAT benchmark. Weight visualization revealed that the network spontaneously learns structured feature detectors resembling classical computer vision filters, providing insight into the emergent representations in trained neural networks. Error analysis identified systematic failure modes arising from the spatial-agnostic nature of fully connected architectures, highlighting the importance of spatial structure for image understanding tasks. This work serves as both an educational resource for understanding neural network fundamentals and an empirical study contributing to the broader understanding of MLP applicability to remote sensing.
+This paper presented a from-scratch implementation of a three-layer neural network for satellite image classification. Through systematic experimentation, we showed that careful hyperparameter tuning yields notable performance improvements, achieving 66.40\% test accuracy on the EuroSAT dataset. Weight visualization revealed that the network learns global color and intensity patterns as first-layer features, rather than localized spatial detectors. Error analysis identified systematic failure modes arising from the spatial-agnostic nature of fully connected architectures, highlighting the importance of spatial structure for image understanding tasks. This work serves as both an educational resource for understanding neural network fundamentals and an empirical study on MLP applicability to remote sensing.
 
 \end{document}
